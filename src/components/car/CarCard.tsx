@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { CardContent } from "@/components/ui/card";
-import { FaWhatsapp } from "react-icons/fa";
 import { Car } from '@/types/car';
 import { Tilt } from '@/components/ui/tilt';
 import { Spotlight } from '@/components/ui/spotlight';
@@ -40,11 +39,6 @@ export function CarCard({ car, onClick, linkHref, carTypeNames = [], transmissio
   const hasDiscount = car.discountedPrice && car.discountedPrice < car.originalPrice;
   const carBrand = car.brand || '';
 
-  const handleWhatsAppClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    const message = `Hi, I'm interested in renting the ${carName}`;
-    window.open(`https://wa.me/971553553626?text=${encodeURIComponent(message)}`, '_blank');
-  };
 
   const cardContent = (
     <CardContent className="p-0">
@@ -80,24 +74,16 @@ export function CarCard({ car, onClick, linkHref, carTypeNames = [], transmissio
                 ))}
               </div>
             )}
-            <div className="flex items-center justify-between pt-2">
-              <div className="flex items-baseline gap-1">
-                {hasDiscount ? (
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-primary text-heading-3">AED {carPrice.toLocaleString()}</span>
-                    <span className="text-white/60 text-sm line-through">AED {carOriginalPrice.toLocaleString()}</span>
-                  </div>
-                ) : (
+            <div className="flex items-baseline gap-1 pt-2">
+              {hasDiscount ? (
+                <div className="flex items-baseline gap-2">
                   <span className="text-primary text-heading-3">AED {carPrice.toLocaleString()}</span>
-                )}
-                <span className="text-white/60 text-sm">/day</span>
-              </div>
-              <button
-                onClick={handleWhatsAppClick}
-                className="bg-green-500 hover:bg-green-600 text-white p-2.5 rounded-full transition-colors"
-              >
-                <FaWhatsapp size={20} />
-              </button>
+                  <span className="text-white/60 text-sm line-through">AED {carOriginalPrice.toLocaleString()}</span>
+                </div>
+              ) : (
+                <span className="text-primary text-heading-3">AED {carPrice.toLocaleString()}</span>
+              )}
+              <span className="text-white/60 text-sm">/day</span>
             </div>
           </div>
         </div>
