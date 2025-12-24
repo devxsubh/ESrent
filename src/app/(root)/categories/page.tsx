@@ -140,12 +140,12 @@ export default function CategoriesPage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col min-h-screen justify-center align-center max-w-7xl mx-auto">
+      <div className="flex flex-col min-h-screen bg-black justify-center align-center max-w-7xl mx-auto">
         <Header />
         <main className="flex-1 max-w-7xl mx-auto w-full p-4">
           <div className="animate-pulse space-y-4">
             {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-48 bg-gray-200 rounded-lg"></div>
+              <div key={i} className="h-48 bg-gray-800/50 rounded-lg"></div>
             ))}
           </div>
         </main>
@@ -154,15 +154,15 @@ export default function CategoriesPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen max-w-7xl mx-auto w-full">
+    <div className="flex flex-col min-h-screen bg-black max-w-7xl mx-auto w-full">
       <Header />
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search categories by name or slug..." />
         </div>
         <div className="flex justify-between items-center mb-6">
-          <h1 className="heading-4 font-semibold">All Categories</h1>
-          <div className="text-sm text-muted-foreground">
+          <h1 className="text-4xl font-bold text-white">All Categories</h1>
+          <div className="text-sm text-gray-400">
             Showing {filteredCategories.length} of {categories.length} categories
           </div>
         </div>
@@ -170,11 +170,12 @@ export default function CategoriesPage() {
         {/* Filter Sections */}
         <div className="mb-8 space-y-4">
           <div className="space-y-2">
-            <h2 className="text-lg font-medium">Filter By:</h2>
+            <h2 className="text-lg font-medium text-white">Filter By:</h2>
             <div className="flex flex-wrap gap-2 mb-4">
               <Button
                 variant={hasActiveFilters ? "outline" : "default"}
                 onClick={clearFilters}
+                className={hasActiveFilters ? "border-gray-600 text-gray-300 hover:bg-gray-800" : "bg-[#44caad] hover:bg-[#3ab89a]"}
               >
                 All Categories
               </Button>
@@ -182,13 +183,16 @@ export default function CategoriesPage() {
           </div>
           
           <div className="space-y-2">
-            <h2 className="text-lg font-medium">Car Types</h2>
+            <h2 className="text-lg font-medium text-white">Car Types</h2>
             <div className="flex flex-wrap gap-2">
               {carTypes.map((type) => (
                 <Button
                   key={type.id}
                   variant={selectedFilters.types.includes(type.slug) ? "default" : "outline"}
                   onClick={() => handleFilterChange('types', type.slug)}
+                  className={selectedFilters.types.includes(type.slug) 
+                    ? "bg-[#44caad] hover:bg-[#3ab89a]" 
+                    : "border-gray-600 text-gray-300 hover:bg-gray-800"}
                 >
                   {type.name} ({type.realCarCount})
                 </Button>
@@ -197,13 +201,16 @@ export default function CategoriesPage() {
           </div>
 
           <div className="space-y-2">
-            <h2 className="text-lg font-medium">Features</h2>
+            <h2 className="text-lg font-medium text-white">Features</h2>
             <div className="flex flex-wrap gap-2">
               {features.map((feature) => (
                 <Button
                   key={feature.id}
                   variant={selectedFilters.features.includes(feature.slug) ? "default" : "outline"}
                   onClick={() => handleFilterChange('features', feature.slug)}
+                  className={selectedFilters.features.includes(feature.slug) 
+                    ? "bg-[#44caad] hover:bg-[#3ab89a]" 
+                    : "border-gray-600 text-gray-300 hover:bg-gray-800"}
                 >
                   {feature.name} ({feature.realCarCount})
                 </Button>
@@ -216,12 +223,12 @@ export default function CategoriesPage() {
         {hasActiveFilters && (
           <div className="mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-medium">Active Filters</h2>
+              <h2 className="text-lg font-medium text-white">Active Filters</h2>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={clearFilters}
-                className="text-muted-foreground hover:text-primary"
+                className="text-gray-400 hover:text-white"
               >
                 Clear All
               </Button>
@@ -278,7 +285,7 @@ export default function CategoriesPage() {
               key={String(category.id)}
               href={`/category/${encodeURIComponent(String(category.id))}`}
             >
-              <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 h-full">
+              <Card className="overflow-hidden hover:shadow-lg transition-shadow duration-200 h-full bg-gray-800/50 border-gray-700 backdrop-blur-sm">
                 <CardContent className="p-0">
                   <div className="aspect-[16/9] relative">
                     <Image
@@ -292,12 +299,12 @@ export default function CategoriesPage() {
                       <p className="text-white/80 mt-1">{typeof category.realCarCount === 'number' ? category.realCarCount : 0} cars</p>
                     </div>
                   </div>
-                  <div className="p-4">
+                  <div className="p-4 bg-gray-800/50">
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-sm text-gray-400">
                         {getCategoryTypeLabel(category.type)}
                       </div>
-                      <Button className="rounded-full bg-indigo-500 hover:bg-indigo-700 text-white" size="sm">
+                      <Button className="rounded-full bg-[#44caad] hover:bg-[#3ab89a] text-white" size="sm">
                         View
                       </Button>
                     </div>
@@ -310,9 +317,9 @@ export default function CategoriesPage() {
 
         {filteredCategories.length === 0 && (
           <div className="text-center py-12">
-            <h3 className="text-lg font-medium mb-2">No categories match your filters</h3>
-            <p className="text-muted-foreground mb-4">Try adjusting your filter criteria</p>
-            <Button onClick={clearFilters}>Clear All Filters</Button>
+            <h3 className="text-lg font-medium mb-2 text-white">No categories match your filters</h3>
+            <p className="text-gray-400 mb-4">Try adjusting your filter criteria</p>
+            <Button onClick={clearFilters} className="bg-[#44caad] hover:bg-[#3ab89a]">Clear All Filters</Button>
           </div>
         )}
       </div>

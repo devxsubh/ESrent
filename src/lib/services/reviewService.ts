@@ -1,4 +1,5 @@
 import { Review, IReview } from '../models/reviewSchema';
+import { Car } from '../models/carSchema';
 import { dbConnect } from '../mongodb';
 
 export class ReviewService {

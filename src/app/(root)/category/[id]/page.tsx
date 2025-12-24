@@ -11,7 +11,8 @@ import { frontendServices } from "@/lib/services/frontendServices"
 import { CarIcon, Grid3X3, ArrowLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import Image from "next/image"
-import { useCategories } from "@/hooks/useApi";
+import { useCategories } from "@/hooks/useApi"
+import { Header } from "../../home/components/Header"
 
 export default function CategoryPage() {
   const params = useParams()
@@ -92,6 +93,7 @@ export default function CategoryPage() {
 
   return (
     <div className="min-h-screen bg-black">
+      <Header />
       {/* Hero Section */}
       {categoryObj && (
         <div className="bg-gray-900/80 border-b border-gray-700 backdrop-blur-sm">
@@ -190,7 +192,7 @@ export default function CategoryPage() {
                   <ArrowLeft className="w-4 h-4" />
                   Go Back
                 </Button>
-                <Button onClick={() => (window.location.href = "/")} className="bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => (window.location.href = "/")} className="bg-[#44caad] hover:bg-[#3ab89a]">
                   Browse All Cars
                 </Button>
               </div>
@@ -205,6 +207,7 @@ export default function CategoryPage() {
 function CategoryPageSkeleton() {
   return (
     <div className="min-h-screen bg-black">
+      <Header />
       {/* Hero Skeleton */}
       <div className="bg-gray-900/80 border-b border-gray-700 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">
