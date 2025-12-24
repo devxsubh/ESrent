@@ -26,11 +26,11 @@ export function FAQItem({ question, answer }: FAQItemProps) {
           </span>
         </div>
         <div className="flex-shrink-0 ml-4">
-          {isOpen ? (
+        {isOpen ? (
             <ChevronUp className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          ) : (
+        ) : (
             <ChevronDown className="w-5 h-5 text-muted-foreground group-hover:text-primary transition-colors" />
-          )}
+        )}
         </div>
       </button>
       <div

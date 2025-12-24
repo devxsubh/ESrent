@@ -47,12 +47,12 @@ export default function BrandsPage() {
               <div className="p-6 flex flex-col items-center justify-center min-h-[120px]">
                 {/* Brand Logo */}
                 <div className="w-16 h-16 relative mb-3 group-hover:scale-110 transition-transform duration-300">
-                  <Image
-                    src={brand.logo}
-                    alt={brand.name}
-                    fill
+                <Image
+                  src={brand.logo}
+                  alt={brand.name}
+                  fill
                     className="object-contain rounded-lg"
-                  />
+                />
                 </div>
                 
                 {/* Brand Name */}

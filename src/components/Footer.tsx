@@ -117,9 +117,9 @@ const Footer = () => {
            
           </div>
         </div>
-        <div className="text-center text-sm text-muted-foreground mt-4">
+        {/* <div className="text-center text-sm text-muted-foreground mt-4">
           <span>Made with 💙 by Pro Quo</span>
-        </div>
+        </div> */}
       </div>
     </footer>
   );

@@ -162,15 +162,15 @@ export function CategoryDialog({ open, onOpenChange, category, onSave }: Categor
   const handleInputChange = (field: keyof Category, value: string | boolean) => {
     setField(field, value);
 
-    // Always auto-generate slug from name when name changes, unless slug was manually edited
-    if (field === 'name' && typeof value === 'string') {
-      const autoSlug = value
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9]+/g, '-')
-        .replace(/^-+|-+$/g, '');
-      
-      // Only update slug if it's empty or was auto-generated from previous name
+      // Always auto-generate slug from name when name changes, unless slug was manually edited
+      if (field === 'name' && typeof value === 'string') {
+        const autoSlug = value
+          .toLowerCase()
+          .trim()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/^-+|-+$/g, '');
+        
+        // Only update slug if it's empty or was auto-generated from previous name
       if (!formData.slug || formData.slug === formData.name?.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')) {
         setField('slug', autoSlug);
       }

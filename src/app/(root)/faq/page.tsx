@@ -48,10 +48,10 @@ export default function FAQPage() {
         {/* FAQ Section */}
         <div className="max-w-4xl mx-auto">
           <div className="space-y-4">
-            {faqs.map((faq, index) => (
-              <FAQItem key={index} question={faq.question} answer={faq.answer} />
-            ))}
-          </div>
+          {faqs.map((faq, index) => (
+            <FAQItem key={index} question={faq.question} answer={faq.answer} />
+          ))}
+        </div>
 
           {/* Contact Section */}
           <div className="mt-16 bg-gradient-to-r from-primary/10 to-primary/5 rounded-2xl p-8 text-center border border-primary/20">
@@ -72,13 +72,13 @@ export default function FAQPage() {
             </div>
             <h2 className="text-2xl font-bold mb-4">Still have questions?</h2>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              Our luxury car rental experts are ready to assist you with any additional queries or special requests.
-            </p>
+            Our luxury car rental experts are ready to assist you with any additional queries or special requests.
+          </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a 
-                href="/contact" 
+          <a 
+            href="/contact" 
                 className="inline-flex items-center justify-center bg-primary text-primary-foreground px-6 py-3 rounded-lg font-medium hover:bg-primary/90 transition-colors"
-              >
+          >
                 Contact Us
               </a>
               <a 

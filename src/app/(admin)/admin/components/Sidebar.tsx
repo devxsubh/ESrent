@@ -8,15 +8,14 @@ import Image from 'next/image';
 import { 
   Car, 
   Tag, 
-  BookOpen, 
   BarChart3, 
   Settings,
   LogOut,
   MessageSquare,
   Building2,
-  Crown,
   Sparkles,
-  Video
+  Video,
+  CalendarCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -26,6 +25,12 @@ const menuItems = [
     href: '/admin', 
     icon: BarChart3,
     description: 'Overview & Analytics'
+  },
+  { 
+    name: 'Bookings', 
+    href: '/admin/bookings', 
+    icon: CalendarCheck,
+    description: 'Booking Requests'
   },
   { 
     name: 'Cars', 
@@ -45,24 +50,24 @@ const menuItems = [
     icon: Tag,
     description: 'Vehicle Types'
   },
-          { 
-          name: 'Reviews', 
-          href: '/admin/reviews', 
-          icon: MessageSquare,
-          description: 'Customer Feedback'
-        },
-        { 
-          name: 'Video Testimonials', 
-          href: '/admin/video-testimonials', 
-          icon: Video,
-          description: 'Video Customer Reviews'
-        },
-        { 
-          name: 'Settings', 
-          href: '/admin/settings', 
-          icon: Settings,
-          description: 'System Configuration'
-        },
+  { 
+    name: 'Reviews', 
+    href: '/admin/reviews', 
+    icon: MessageSquare,
+    description: 'Customer Feedback'
+  },
+  { 
+    name: 'Video Testimonials', 
+    href: '/admin/video-testimonials', 
+    icon: Video,
+    description: 'Video Customer Reviews'
+  },
+  { 
+    name: 'Settings', 
+    href: '/admin/settings', 
+    icon: Settings,
+    description: 'System Configuration'
+  },
 ];
 
 export function Sidebar() {

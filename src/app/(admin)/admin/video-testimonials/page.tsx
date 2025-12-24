@@ -496,6 +496,7 @@ export default function VideoTestimonialsPage() {
                 <div className="border-2 border-dashed border-muted-foreground/20 rounded-lg p-6 bg-muted/20">
                   {thumbnailPreviewUrl ? (
                     <div className="space-y-3">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={thumbnailPreviewUrl}
                         alt="Thumbnail preview"
@@ -615,11 +616,11 @@ export default function VideoTestimonialsPage() {
                     <VideoThumbnail
                       videoUrl={testimonial.videoUrl}
                       thumbnailUrl={testimonial.thumbnailUrl}
-                      alt="Video thumbnail"
+                        alt="Video thumbnail"
                       className="w-full h-full"
                       time={1}
                       fallbackIcon={<Video className="h-8 w-8 text-muted-foreground" />}
-                    />
+                      />
                     <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                       <div className="bg-black/60 rounded-full p-3">
                         <Play className="h-5 w-5 text-white" />

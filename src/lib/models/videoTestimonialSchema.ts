@@ -80,12 +80,12 @@ videoTestimonialSchema.pre('save', async function(next) {
   if (this.isFeatured && this.isModified('isFeatured')) {
     // If this testimonial is being featured, unfeature all others
     await (this.constructor as any).updateMany(
-      { 
-        _id: { $ne: this._id },
-        isFeatured: true 
-      },
-      { isFeatured: false }
-    );
+        { 
+          _id: { $ne: this._id },
+          isFeatured: true 
+        },
+        { isFeatured: false }
+      );
   }
   next();
 });

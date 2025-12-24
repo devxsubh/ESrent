@@ -90,7 +90,7 @@ export function BrandDialog({ brand, open, onOpenChange, onSave }: BrandDialogPr
   useEffect(() => {
     if (open) {
       reset();
-      setPreviewLogo(brand?.logo || '');
+    setPreviewLogo(brand?.logo || '');
       clearApiError();
     }
   }, [open, brand, reset, clearApiError]);
@@ -191,35 +191,35 @@ export function BrandDialog({ brand, open, onOpenChange, onSave }: BrandDialogPr
             <h3 className="text-lg font-semibold text-card-foreground">Basic Information</h3>
             <div className="space-y-2">
               <Label htmlFor="name" className="text-card-foreground">Name *</Label>
-              <Input
-                id="name"
-                value={formData.name || ''}
+                              <Input
+                  id="name"
+                  value={formData.name || ''}
                 onChange={(e) => handleNameChange(e.target.value)}
                 className={errors.name ? 'border-destructive focus-visible:ring-destructive' : ''}
                 disabled={isSubmitting || uploading}
-                required
-              />
+                  required
+                />
               <FieldError error={errors.name} />
             </div>
             <div className="space-y-2">
               <Label htmlFor="slug" className="text-card-foreground">Slug *</Label>
-              <Input
-                id="slug"
-                value={formData.slug || ''}
+                              <Input
+                  id="slug"
+                  value={formData.slug || ''}
                 onChange={(e) => setField('slug', e.target.value)}
                 className={errors.slug ? 'border-destructive focus-visible:ring-destructive' : ''}
                 disabled={isSubmitting || uploading}
-                required
-              />
+                  required
+                />
               <FieldError error={errors.slug} />
             </div>
             <div className="flex items-center space-x-2">
-              <Switch
-                id="featured"
-                checked={formData.featured ?? false}
+                              <Switch
+                  id="featured"
+                  checked={formData.featured ?? false}
                 onCheckedChange={(checked) => setField('featured', checked)}
                 disabled={isSubmitting || uploading}
-              />
+                />
               <Label htmlFor="featured" className="text-card-foreground">Featured Brand</Label>
             </div>
           </div>

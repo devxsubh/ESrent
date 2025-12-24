@@ -177,8 +177,8 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
     // Reset form data and preview images when car prop changes
     if (open) {
       reset();
-      setPreviewImages(car?.images || []);
-      setCoverImageIndex(0); // Reset cover image to first image
+    setPreviewImages(car?.images || []);
+    setCoverImageIndex(0); // Reset cover image to first image
       // setTagsInput(car?.tags ? car.tags.join(', ') : '');
       clearApiError();
     }
