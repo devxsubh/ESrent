@@ -188,7 +188,7 @@ bookingSchema.pre('save', async function (next) {
 
 // Instance method to generate WhatsApp link
 bookingSchema.methods.getWhatsAppLink = function (): string {
-  const businessPhone = '+971XXXXXXXXX'; // Replace with actual number
+  const businessPhone = '971553553626'; // +971 55 355 3626
   const startDate = this.startDate.toLocaleDateString('en-GB', {
     day: 'numeric',
     month: 'short',

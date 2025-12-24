@@ -53,7 +53,7 @@ interface CarInfo {
 
 interface BookingFormProps {
   car: CarInfo;
-  onSuccess: (confirmation: BookingConfirmationData) => void;
+  onSuccess?: (confirmation: BookingConfirmationData) => void;
 }
 
 interface BookingConfirmationData {
@@ -173,7 +173,16 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
         throw new Error(result.error || 'Failed to create booking');
       }
       
-      onSuccess(result.data);
+      // Store booking data in sessionStorage and redirect to confirmation page
+      sessionStorage.setItem('bookingConfirmation', JSON.stringify(result.data));
+      
+      // Call onSuccess callback if provided (for backward compatibility)
+      if (onSuccess) {
+        onSuccess(result.data);
+      }
+      
+      // Redirect to confirmation page
+      window.location.href = `/booking/confirmation/${result.data.visibleId}`;
       
     } catch (err) {
       console.error('Booking error:', err);

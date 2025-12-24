@@ -4,7 +4,6 @@ import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Header } from '../../home/components/Header';
 import { BookingForm } from '@/components/booking/BookingForm';
-import { BookingConfirmation } from '@/components/booking/BookingConfirmation';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AlertCircle, ArrowLeft, Shield, Truck, Clock } from 'lucide-react';
 import Link from 'next/link';
@@ -22,23 +21,6 @@ interface CarData {
   description?: string;
 }
 
-interface BookingConfirmationData {
-  bookingId: string;
-  visibleId: string;
-  carName: string;
-  carImage?: string;
-  startDate: string;
-  endDate: string;
-  totalDays: number;
-  pricePerDay: number;
-  totalPrice: number;
-  pickupLocation: string;
-  deliveryRequired: boolean;
-  customerName: string;
-  phone: string;
-  whatsappLink: string;
-}
-
 export default function BookingPage() {
   const params = useParams();
   const carId = params.carId as string;
@@ -46,7 +28,6 @@ export default function BookingPage() {
   const [car, setCar] = useState<CarData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [confirmation, setConfirmation] = useState<BookingConfirmationData | null>(null);
   
   useEffect(() => {
     const fetchCar = async () => {
@@ -73,11 +54,6 @@ export default function BookingPage() {
     }
   }, [carId]);
   
-  const handleBookingSuccess = (bookingData: BookingConfirmationData) => {
-    setConfirmation(bookingData);
-    // Scroll to top
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
   
   // Loading state
   if (loading) {
@@ -121,18 +97,6 @@ export default function BookingPage() {
     );
   }
   
-  // Confirmation state
-  if (confirmation) {
-    return (
-      <div className="flex flex-col min-h-screen">
-        <Header />
-        <main className="flex-1 max-w-4xl mx-auto w-full p-4 py-8">
-          <BookingConfirmation booking={confirmation} />
-        </main>
-      </div>
-    );
-  }
-  
   // Booking form state
   return (
     <div className="flex flex-col min-h-screen">
@@ -158,7 +122,6 @@ export default function BookingPage() {
                 brand: car.brand?.name,
                 category: car.category?.name,
               }}
-              onSuccess={handleBookingSuccess}
             />
           </div>
           
@@ -233,7 +196,7 @@ export default function BookingPage() {
                 Our team is available 24/7 to assist you.
               </p>
               <a
-                href="https://wa.me/+971XXXXXXXXX"
+                href="https://wa.me/971553553626"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center justify-center gap-2 w-full bg-[#25D366] hover:bg-[#20BD5A] text-white font-medium py-2.5 px-4 rounded-lg transition-colors text-sm"

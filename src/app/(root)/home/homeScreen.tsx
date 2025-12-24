@@ -338,7 +338,7 @@ function FeaturedContent() {
 }
 
 function WhatsAppFAB() {
-      const whatsappNumber = "+971553553626"; // Replace with your actual WhatsApp number
+      const whatsappNumber = "971553553626"; // +971 55 355 3626
   const message = "Hi, I'm interested in renting a car"; // Default message
   
   const handleClick = () => {

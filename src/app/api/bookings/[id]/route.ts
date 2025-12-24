@@ -36,9 +36,46 @@ export async function GET(request: NextRequest) {
       );
     }
     
+    // Generate WhatsApp link using the booking instance
+    const bookingDoc = await Booking.findById(booking._id) || await Booking.findOne({ visibleId: id });
+    const whatsappLink = bookingDoc ? bookingDoc.getWhatsAppLink() : '';
+    
+    // Format dates for response
+    const formattedStartDate = booking.startDate 
+      ? new Date(booking.startDate).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '';
+    const formattedEndDate = booking.endDate
+      ? new Date(booking.endDate).toLocaleDateString('en-GB', {
+          day: 'numeric',
+          month: 'short',
+          year: 'numeric',
+        })
+      : '';
+    
+    // Format response to match BookingConfirmation interface
     return NextResponse.json({
       success: true,
-      data: booking,
+      data: {
+        bookingId: booking._id?.toString() || '',
+        visibleId: booking.visibleId,
+        carName: booking.carName,
+        carImage: booking.carImage,
+        startDate: formattedStartDate,
+        endDate: formattedEndDate,
+        totalDays: booking.totalDays,
+        pricePerDay: booking.pricePerDay,
+        totalPrice: booking.totalPrice,
+        pickupLocation: booking.pickupLocation,
+        deliveryRequired: booking.deliveryRequired || false,
+        customerName: booking.fullName,
+        phone: booking.phone,
+        whatsappLink,
+        status: booking.status,
+      },
     });
   } catch (error) {
     console.error('Error fetching booking:', error);

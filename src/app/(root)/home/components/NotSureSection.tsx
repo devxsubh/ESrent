@@ -2,7 +2,7 @@ import Link from 'next/link';
 import { motion } from "framer-motion";
 
 export function NotSureSection() {
-  const whatsappLink = "https://wa.me/+971000000000"; // Replace with your actual WhatsApp number
+  const whatsappLink = "https://wa.me/971553553626"; // +971 55 355 3626
 
   return (
     <motion.div

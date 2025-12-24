@@ -73,7 +73,7 @@ export function CarPricing({ car, selectedDate, endDate }: CarPricingProps) {
         </div>
         
         <Link 
-          href={`https://wa.me/971585775775?text=${whatsappMessage}`}
+          href={`https://wa.me/971553553626?text=${whatsappMessage}`}
           target="_blank"
           rel="noopener noreferrer"
         >
