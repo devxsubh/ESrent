@@ -21,6 +21,10 @@ const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 // Debug: Track API calls
 const apiCallCounts = new Map<string, number>();
 
+// Retry configuration
+const MAX_RETRIES = 3;
+const RETRY_DELAY = 1000; // 1 second base delay
+
 // Helper function to generate stable cache keys
 function generateCacheKey(endpoint: string, params?: Record<string, unknown>): string {
   if (!params) return endpoint;
@@ -59,9 +63,9 @@ export function useApi<T>(
   }, []);
 
   // Memoize the API call to prevent infinite re-renders
-  const memoizedApiCall = useCallback(apiCall, dependencies);
+  const memoizedApiCall = useCallback(apiCall, [apiCall, ...dependencies]);
 
-  const fetchData = useCallback(async (forceRefresh = false) => {
+  const fetchData = useCallback(async (forceRefresh = false, retryCount = 0) => {
     if (!isMountedRef.current) return;
 
     // Debug: Track API calls
@@ -71,8 +75,8 @@ export function useApi<T>(
       // console.log(`API Call #${count} for ${cacheKey}`);
     }
 
-    // Check cache first
-    if (cacheKey && !forceRefresh) {
+    // Check cache first (unless forcing refresh or retrying)
+    if (cacheKey && !forceRefresh && retryCount === 0) {
       const cached = apiCache.get(cacheKey);
       if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
         // console.log(`Cache hit for ${cacheKey}`);
@@ -104,6 +108,28 @@ export function useApi<T>(
       }
     } catch (error) {
       console.error('fetchData: API error', error);
+      
+      // Retry logic for network errors
+      const isNetworkError = error instanceof Error && (
+        error.message.includes('timeout') ||
+        error.message.includes('Network error') ||
+        error.message.includes('Failed to fetch') ||
+        error.name === 'AbortError'
+      );
+      
+      if (isNetworkError && retryCount < MAX_RETRIES && isMountedRef.current) {
+        // Exponential backoff retry
+        const delay = RETRY_DELAY * Math.pow(2, retryCount);
+        console.log(`Retrying request (attempt ${retryCount + 1}/${MAX_RETRIES}) after ${delay}ms...`);
+        
+        setTimeout(() => {
+          if (isMountedRef.current) {
+            fetchData(forceRefresh, retryCount + 1);
+          }
+        }, delay);
+        return;
+      }
+      
       if (isMountedRef.current) {
         setState({
           data: null,
@@ -115,7 +141,7 @@ export function useApi<T>(
         // console.log('fetchData: not mounted, skipping setState (error)');
       }
     }
-  }, [memoizedApiCall, cacheKey, apiCall]);
+  }, [memoizedApiCall, cacheKey]);
 
   useEffect(() => {
     if (immediate && !hasInitializedRef.current) {
@@ -124,17 +150,8 @@ export function useApi<T>(
     }
   }, [fetchData, immediate]);
 
-  // Timeout fallback: set loading to false after 10 seconds
-  useEffect(() => {
-    if (state.loading) {
-      const timeout = setTimeout(() => {
-        if (isMountedRef.current) {
-          setState(prev => ({ ...prev, loading: false, error: prev.error || 'Request timed out' }));
-        }
-      }, 10000);
-      return () => clearTimeout(timeout);
-    }
-  }, [state.loading]);
+  // Timeout is now handled at the fetch level with AbortController
+  // No need for hard timeout that only hides loading state
 
   return { ...state, refetch: () => fetchData(true) };
 }

@@ -1,13 +1,25 @@
 import { Review, IReview } from '../models/reviewSchema';
-import { Car } from '../models/carSchema';
 import { dbConnect } from '../mongodb';
+import mongoose from 'mongoose';
+
+interface ReviewFilter {
+  carId: string;
+  isApproved?: boolean;
+}
+
+interface PopulatedCar {
+  _id: string | mongoose.Types.ObjectId | { toString: () => string };
+  name: string;
+  brand: string;
+  model: string;
+}
 
 export class ReviewService {
   // Get all reviews for a car (approved only for public, all for admin)
   static async getReviewsByCarId(carId: string, includeUnapproved: boolean = false) {
     await dbConnect();
     
-    const filter: any = { carId };
+    const filter: ReviewFilter = { carId };
     if (!includeUnapproved) {
       filter.isApproved = true;
     }
@@ -18,11 +30,28 @@ export class ReviewService {
       .lean();
     
     // Transform the data to match expected format
-    return reviews.map(review => ({
-      ...review,
-      car: review.carId || null,
-      carId: review.carId ? ((review.carId as any)._id || review.carId) : null
-    }));
+    return reviews.map(review => {
+      const carId = review.carId;
+      let populatedCar: PopulatedCar | null = null;
+      let carIdValue: string | null = null;
+      
+      if (carId && typeof carId === 'object' && 'name' in carId && '_id' in carId) {
+        // It's a populated car object
+        populatedCar = carId as unknown as PopulatedCar;
+        carIdValue = typeof populatedCar._id === 'object' && 'toString' in populatedCar._id
+          ? populatedCar._id.toString() 
+          : String(populatedCar._id);
+      } else if (carId) {
+        // It's just an ID (string or ObjectId)
+        carIdValue = typeof carId === 'string' ? carId : String(carId);
+      }
+      
+      return {
+        ...review,
+        car: populatedCar || null,
+        carId: carIdValue
+      };
+    });
   }
 
   // Get featured reviews for a car
@@ -51,10 +80,25 @@ export class ReviewService {
       // Transform the data to match expected format
       const transformedReviews = reviews.map(review => {
         try {
+          const carId = review.carId;
+          let populatedCar: PopulatedCar | null = null;
+          let carIdValue: string | null = null;
+          
+          if (carId && typeof carId === 'object' && 'name' in carId) {
+            // It's a populated car object
+            populatedCar = carId as unknown as PopulatedCar;
+            carIdValue = typeof populatedCar._id === 'object' 
+              ? populatedCar._id.toString() 
+              : String(populatedCar._id);
+          } else if (carId) {
+            // It's just an ID (string or ObjectId)
+            carIdValue = typeof carId === 'string' ? carId : carId.toString();
+          }
+          
           return {
             ...review,
-            car: review.carId || null,
-            carId: review.carId ? ((review.carId as any)._id || review.carId) : null
+            car: populatedCar || null,
+            carId: carIdValue
           };
         } catch (transformError) {
           console.error('Error transforming review:', transformError, review);
@@ -79,11 +123,28 @@ export class ReviewService {
       .lean();
     
     // Transform the data to match expected format
-    return reviews.map(review => ({
-      ...review,
-      car: review.carId || null,
-      carId: review.carId ? ((review.carId as any)._id || review.carId) : null
-    }));
+    return reviews.map(review => {
+      const carId = review.carId;
+      let populatedCar: PopulatedCar | null = null;
+      let carIdValue: string | null = null;
+      
+      if (carId && typeof carId === 'object' && 'name' in carId) {
+        // It's a populated car object
+        populatedCar = carId as unknown as PopulatedCar;
+        carIdValue = typeof populatedCar._id === 'object' 
+          ? populatedCar._id.toString() 
+          : String(populatedCar._id);
+      } else if (carId) {
+        // It's just an ID (string or ObjectId)
+        carIdValue = typeof carId === 'string' ? carId : carId.toString();
+      }
+      
+      return {
+        ...review,
+        car: populatedCar || null,
+        carId: carIdValue
+      };
+    });
   }
 
   // Create a new review
@@ -179,10 +240,25 @@ export class ReviewService {
     // Transform the data to match expected format
     const transformedReviews = reviews.map(review => {
       try {
+        const carId = review.carId;
+        let populatedCar: PopulatedCar | null = null;
+        let carIdValue: string | null = null;
+        
+        if (carId && typeof carId === 'object' && 'name' in carId) {
+          // It's a populated car object
+          populatedCar = carId as unknown as PopulatedCar;
+          carIdValue = typeof populatedCar._id === 'object' 
+            ? populatedCar._id.toString() 
+            : String(populatedCar._id);
+        } else if (carId) {
+          // It's just an ID (string or ObjectId)
+          carIdValue = typeof carId === 'string' ? carId : carId.toString();
+        }
+        
         return {
           ...review,
-          car: review.carId || null,
-          carId: review.carId ? ((review.carId as any)._id || review.carId) : null
+          car: populatedCar || null,
+          carId: carIdValue
         };
       } catch (transformError) {
         console.error('Error transforming review:', transformError, review);

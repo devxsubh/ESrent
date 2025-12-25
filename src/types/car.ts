@@ -1,9 +1,17 @@
 
+import { Brand } from './brand';
+import { Category } from './category';
+
+// Type for populated Brand (when brandId is populated)
+export type PopulatedBrand = Pick<Brand, 'id' | 'name' | 'logo' | 'slug'>;
+
+// Type for populated Category (when carTypeIds, etc. are populated)
+export type PopulatedCategory = Pick<Category, 'id' | 'name' | 'type' | 'slug'>;
 
 export interface Car {
   id: string;
   brand: string;
-  brandId?: string;
+  brandId?: string | PopulatedBrand;
   model: string;
   name: string;
   year: number;
@@ -24,10 +32,10 @@ export interface Car {
   power?: string;
   tags?: string[];
   seater?: number;
-  carTypeIds?: string[];
-  transmissionIds?: string[];
-  fuelTypeIds?: string[];
-  tagIds?: string[];
+  carTypeIds?: string[] | PopulatedCategory[];
+  transmissionIds?: string[] | PopulatedCategory[];
+  fuelTypeIds?: string[] | PopulatedCategory[];
+  tagIds?: string[] | PopulatedCategory[];
   fuelType?: string;
   type?: string;
   createdAt?: Date;

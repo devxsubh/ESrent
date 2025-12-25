@@ -8,7 +8,7 @@ export interface ValidationRule {
   minLength?: number;
   maxLength?: number;
   pattern?: RegExp;
-  custom?: (value: any) => string | null;
+  custom?: (value: unknown) => string | null;
   message?: string;
 }
 
@@ -20,7 +20,7 @@ export interface ValidationErrors {
   [key: string]: string;
 }
 
-export function validateField(value: any, rules: ValidationRule): string | null {
+export function validateField(value: unknown, rules: ValidationRule): string | null {
   // Required validation
   if (rules.required && (!value || (typeof value === 'string' && !value.trim()))) {
     return rules.message || 'This field is required';
@@ -54,7 +54,7 @@ export function validateField(value: any, rules: ValidationRule): string | null 
   return null;
 }
 
-export function validateForm(data: Record<string, any>, rules: ValidationRules): ValidationErrors {
+export function validateForm(data: Record<string, unknown>, rules: ValidationRules): ValidationErrors {
   const errors: ValidationErrors = {};
 
   for (const [field, fieldRules] of Object.entries(rules)) {

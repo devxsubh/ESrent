@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { UserService } from '@/lib/services/userService';
+import { UserService, User } from '@/lib/services/userService';
 
 export interface AuthenticatedRequest extends NextRequest {
-  user?: Record<string, unknown>;
+  user?: User;
 }
 
 export async function authenticateToken(request: NextRequest): Promise<NextResponse | null> {
@@ -28,7 +28,7 @@ export async function authenticateToken(request: NextRequest): Promise<NextRespo
     }
 
     // Add user to request for use in route handlers
-    (request as unknown as { user?: any }).user = user;
+    (request as AuthenticatedRequest).user = user;
     return null; // Continue to next middleware/route
   } catch (error) {
     console.error('Authentication error:', error);
@@ -47,7 +47,7 @@ export async function requireAdmin(request: NextRequest): Promise<NextResponse |
   const authResult = await authenticateToken(request);
   if (authResult) return authResult;
 
-  const user = (request as unknown as { user?: any }).user;
+  const user = (request as AuthenticatedRequest).user;
   if (!user || (user.role !== 'admin' && user.role !== 'super_admin')) {
     return NextResponse.json(
       { error: 'Admin access required' },
@@ -62,7 +62,7 @@ export async function requireSuperAdmin(request: NextRequest): Promise<NextRespo
   const authResult = await authenticateToken(request);
   if (authResult) return authResult;
 
-  const user = (request as unknown as { user?: any }).user;
+  const user = (request as AuthenticatedRequest).user;
   if (!user || user.role !== 'super_admin') {
     return NextResponse.json(
       { error: 'Super admin access required' },

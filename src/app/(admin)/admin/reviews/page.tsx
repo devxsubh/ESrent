@@ -33,6 +33,8 @@ import {
   Eye,
   ThumbsUp,
   ThumbsDown,
+  RefreshCw,
+  Loader2,
   Bold,
   Italic,
   Underline,
@@ -335,27 +337,27 @@ export default function ReviewsPage() {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <MessageSquare className="w-7 h-7 text-primary" />
             Reviews Management
           </h1>
-          <p className="text-muted-foreground">Manage and moderate customer reviews</p>
+          <p className="text-muted-foreground mt-1">
+            Manage and moderate customer reviews
+          </p>
         </div>
-        <div className="flex gap-3">
-          <Button
-            onClick={fetchCars}
-            variant="outline"
-            disabled={carsLoading}
-            className="border-border/50 hover:bg-accent/50"
-          >
-            {carsLoading ? 'Loading...' : 'Refresh Cars'}
+        
+        <div className="flex gap-2">
+          <Button onClick={fetchReviews} variant="outline" className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
           </Button>
           <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
             <DialogTrigger asChild>
-              <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25">
+              <Button className="bg-primary hover:bg-primary/90">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Review
               </Button>
@@ -616,58 +618,58 @@ export default function ReviewsPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <MessageSquare className="w-6 h-6 text-white" />
-              </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Reviews</p>
-                <p className="text-2xl font-bold text-blue-400">{stats.total}</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-primary" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                <ThumbsUp className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Approved</p>
-                <p className="text-2xl font-bold text-green-400">{stats.approved}</p>
+                <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                <ThumbsUp className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                <Clock className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Pending</p>
-                <p className="text-2xl font-bold text-yellow-400">{stats.pending}</p>
+                <p className="text-2xl font-bold text-yellow-600">{stats.pending}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                <Clock className="w-5 h-5 text-yellow-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Award className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Featured</p>
-                <p className="text-2xl font-bold text-purple-400">{stats.featured}</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.featured}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Award className="w-5 h-5 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -675,38 +677,30 @@ export default function ReviewsPage() {
       </div>
     
       {/* Filters */}
-      <Card className="border-0 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
-        <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <Label className="text-sm font-medium mb-2 block">Search Reviews</Label>
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
-                <Input
-                  placeholder="Search by name, title, or comment..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 bg-background/50 border-border/50"
-                />
-              </div>
-            </div>
-            <div>
-              <Label className="text-sm font-medium mb-2 block">Filter by Status</Label>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-background/50 border-border/50 min-w-[180px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Reviews</SelectItem>
-                  <SelectItem value="approved">Approved</SelectItem>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="featured">Featured</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, title, comment..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={filterStatus} onValueChange={setFilterStatus}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="approved">Approved</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="featured">Featured</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Reviews List */}
       <div className="space-y-6">

@@ -25,6 +25,7 @@ export interface CursorPaginatedResponse<T> {
 
 class FrontendServices {
   private baseURL: string;
+  private defaultTimeout: number = 30000; // 30 seconds
 
   constructor() {
     this.baseURL = `${API_BASE_URL}/api`;
@@ -32,20 +33,27 @@ class FrontendServices {
 
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
+    timeout: number = this.defaultTimeout
   ): Promise<T> {
     const url = `${this.baseURL}${endpoint}`;
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     
     const config: RequestInit = {
       headers: {
         'Content-Type': 'application/json',
         ...options.headers,
       },
+      signal: controller.signal,
       ...options,
     };
 
     try {
       const response = await fetch(url, config);
+      clearTimeout(timeoutId);
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -54,6 +62,18 @@ class FrontendServices {
 
       return await response.json();
     } catch (error) {
+      clearTimeout(timeoutId);
+      
+      // Handle timeout/abort errors
+      if (error instanceof Error) {
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet connection and try again.');
+        }
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+          throw new Error('Network error. Please check your internet connection and try again.');
+        }
+      }
+      
       console.error(`API request failed for ${endpoint}:`, error);
       throw error;
     }

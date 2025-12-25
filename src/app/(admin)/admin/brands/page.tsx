@@ -1,15 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
-import { AlertCircle, Pencil, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Star, Image as ImageIcon, Car } from 'lucide-react';
+import { AlertCircle, Pencil, Trash2, Plus, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, Building2, Star, Image as ImageIcon, Car, RefreshCw, Search, Filter, Loader2 } from 'lucide-react';
 import { Brand } from '@/types/brand';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { BrandDialog } from '@/components/admin/brand-dialog';
 import { StatusModal } from '@/components/admin/status-modal';
-import { TableSkeleton } from '@/components/ui/table-skeleton';
 import { useToast } from '@/components/hooks/use-toast';
 import { useAuth } from '@/hooks/useApi';
 
@@ -36,7 +37,9 @@ export default function AdminBrands() {
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalBrands, setTotalBrands] = useState(0);
-  const [pageSize, setPageSize] = useState(12);
+  const [pageSize] = useState(12);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [featuredFilter, setFeaturedFilter] = useState<string>('all');
   
   // Stats state for total data
   const [stats, setStats] = useState({
@@ -91,7 +94,7 @@ export default function AdminBrands() {
   };
 
   // Fetch total stats from all brands
-  const fetchTotalStats = async () => {
+  const fetchTotalStats = useCallback(async () => {
     try {
       setStatsLoading(true);
       const res = await fetch('/api/brands?limit=1000'); // Get all brands for stats
@@ -153,7 +156,7 @@ export default function AdminBrands() {
     } finally {
       setStatsLoading(false);
     }
-  };
+  }, [brands]);
 
   useEffect(() => {
     fetchBrands(1);
@@ -161,7 +164,7 @@ export default function AdminBrands() {
 
   useEffect(() => {
     fetchTotalStats();
-  }, []);
+  }, [fetchTotalStats]);
 
   // Pagination control functions
   const goToPage = (page: number) => {
@@ -261,9 +264,10 @@ export default function AdminBrands() {
         );
       } else {
         // Ensure brandData matches CreateBrandData type
-        const requiredFields = ['name', 'description'];
+        const requiredFields: (keyof Brand)[] = ['name'];
         for (const field of requiredFields) {
-          if (!((brandData as any)[field]) || (Array.isArray((brandData as any)[field]) && (brandData as any)[field].length === 0)) {
+          const fieldValue = brandData[field];
+          if (!fieldValue || (Array.isArray(fieldValue) && fieldValue.length === 0)) {
             throw new Error(`Missing required field: ${field}`);
           }
         }
@@ -336,7 +340,7 @@ export default function AdminBrands() {
   };
 
   // Helper function to validate image URLs
-  const isValidImageUrl = (url: any): boolean => {
+  const isValidImageUrl = (url: string | null | undefined): boolean => {
     // Check if url is a valid string and not empty
     if (!url || typeof url !== 'string') {
       return false;
@@ -349,117 +353,188 @@ export default function AdminBrands() {
            trimmedUrl.length > 0;
   };
 
+  const filteredBrands = brands.filter(brand => {
+    if (!searchQuery) return true;
+    const query = searchQuery.toLowerCase();
+    return (
+      brand.name.toLowerCase().includes(query) ||
+      (brand.slug && brand.slug.toLowerCase().includes(query))
+    );
+  }).filter(brand => {
+    if (featuredFilter === 'all') return true;
+    if (featuredFilter === 'featured') return brand.featured;
+    if (featuredFilter === 'standard') return !brand.featured;
+    return true;
+  });
+
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Building2 className="w-7 h-7 text-primary" />
             Brands Management
           </h1>
-          <p className="text-muted-foreground">Manage your car brands and manufacturers</p>
+          <p className="text-muted-foreground mt-1">
+            Manage your car brands and manufacturers
+          </p>
         </div>
-        <Button 
-          onClick={handleAddBrand}
-          className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add Brand
-        </Button>
+        
+        <div className="flex gap-2">
+          <Button onClick={() => fetchBrands(currentPage)} variant="outline" className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button 
+            onClick={handleAddBrand}
+            className="bg-primary hover:bg-primary/90"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Brand
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Brands</p>
-                <p className="text-2xl font-bold text-blue-400">
+                <p className="text-2xl font-bold text-foreground">
                   {statsLoading ? '...' : stats.total}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-yellow-500/10 to-yellow-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-xl flex items-center justify-center">
-                <Star className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Featured</p>
-                <p className="text-2xl font-bold text-yellow-400">
+                <p className="text-2xl font-bold text-yellow-600">
                   {statsLoading ? '...' : stats.featured}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
+                <Star className="w-5 h-5 text-yellow-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <ImageIcon className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">With Logos</p>
-                <p className="text-2xl font-bold text-purple-400">
+                <p className="text-2xl font-bold text-blue-600">
                   {statsLoading ? '...' : stats.withLogos}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <ImageIcon className="w-5 h-5 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                <Car className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Cars</p>
-                <p className="text-2xl font-bold text-green-400">
+                <p className="text-2xl font-bold text-green-600">
                   {statsLoading ? '...' : stats.totalCars}
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Car className="w-5 h-5 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Main Content Card */}
-      <Card className="border-0 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
-        <CardContent className="p-6">
-          {error ? (
-            <div className="flex items-center gap-2 text-destructive mb-6">
-              <AlertCircle className="h-4 w-4" />
-              <p>{error.error}</p>
-            </div>
-          ) : null}
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by name, slug..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        
+        <Select value={featuredFilter} onValueChange={setFeaturedFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Brands</SelectItem>
+            <SelectItem value="featured">Featured</SelectItem>
+            <SelectItem value="standard">Standard</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
-          <div className="relative">
-            {/* Fade out current table when loading */}
-            <div className={`transition-opacity duration-200 ${loading ? 'opacity-0' : 'opacity-100'}`}>
-              <Table>
-                <TableHeader>
-                  <TableRow className="border-border/50">
-                                         <TableHead className="text-muted-foreground">Logo</TableHead>
-                     <TableHead className="text-muted-foreground">Name</TableHead>
-                     <TableHead className="text-muted-foreground">Slug</TableHead>
-                     <TableHead className="text-muted-foreground">Status</TableHead>
-                     <TableHead className="text-muted-foreground">Actions</TableHead>
+      {/* Error State */}
+      {error && (
+        <div className="bg-destructive/10 border border-destructive/20 rounded-lg p-4 flex items-center gap-3">
+          <AlertCircle className="w-5 h-5 text-destructive" />
+          <p className="text-destructive">{error.error}</p>
+          <Button variant="outline" size="sm" onClick={() => fetchBrands(currentPage)} className="ml-auto">
+            Retry
+          </Button>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      )}
+
+      {/* Main Content Card */}
+      {!loading && !error && (
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-6">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border/50">
+                  <TableHead className="text-muted-foreground">Logo</TableHead>
+                  <TableHead className="text-muted-foreground">Name</TableHead>
+                  <TableHead className="text-muted-foreground">Slug</TableHead>
+                  <TableHead className="text-muted-foreground">Status</TableHead>
+                  <TableHead className="text-muted-foreground">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredBrands.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-12">
+                      <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">No Brands Found</h3>
+                      <p className="text-muted-foreground">
+                        {searchQuery || featuredFilter !== 'all'
+                          ? 'Try adjusting your search or filters'
+                          : 'Get started by adding your first brand.'}
+                      </p>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {brands.map((brand: Brand) => {
+                ) : (
+                  filteredBrands.map((brand: Brand) => {
                     // console.log('Brand data:', brand);
                     // console.log('Brand logo:', brand.logo, 'Type:', typeof brand.logo, 'Is object:', typeof brand.logo === 'object');
                     const logoUrl = typeof brand.logo === 'string' ? brand.logo : ''; // Ensure it's always a string
@@ -516,21 +591,13 @@ export default function AdminBrands() {
                         </TableCell>
                       </TableRow>
                     );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+                  })
+                )}
+              </TableBody>
+            </Table>
 
-            {/* Show skeleton loader when loading */}
-            <div className={`absolute inset-0 transition-opacity duration-200 ${
-              loading ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}>
-              <TableSkeleton />
-            </div>
-          </div>
-
-          {/* Pagination Controls */}
-          {!loading && totalPages > 1 && (
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
             <div className="flex items-center justify-between mt-6">
               {/* Page Info */}
               <div className="text-sm text-muted-foreground">
@@ -614,22 +681,9 @@ export default function AdminBrands() {
             </div>
           )}
 
-          {/* Empty State */}
-          {!loading && brands.length === 0 && (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gradient-to-br from-muted to-muted/50 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Building2 className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2 text-muted-foreground">No brands found</h3>
-              <p className="text-sm text-muted-foreground/70 mb-4">Get started by adding your first brand.</p>
-              <Button onClick={handleAddBrand} className="bg-gradient-to-r from-primary to-primary/80">
-                <Plus className="h-4 w-4 mr-2" />
-                Add Your First Brand
-              </Button>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       <BrandDialog
         brand={selectedBrand}

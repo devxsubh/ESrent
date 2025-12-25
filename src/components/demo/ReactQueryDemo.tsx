@@ -37,7 +37,7 @@ export function ReactQueryDemo() {
   // Optimistic update example
   const optimisticUpdate = useOptimisticUpdate(
     queryKeys.cars.detail(selectedCarId),
-    (oldData: any) => ({
+    (oldData: { name?: string } | null | undefined) => ({
       ...oldData,
       name: oldData?.name ? `${oldData.name} (Updated!)` : 'Demo Car (Updated!)'
     })

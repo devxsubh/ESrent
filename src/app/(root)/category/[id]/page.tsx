@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react"
 import { useParams } from "next/navigation"
-import type { Car } from "@/types/car"
+import type { Car, PopulatedCategory } from "@/types/car"
+import type { Category } from "@/types/category"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -20,16 +21,30 @@ export default function CategoryPage() {
   const [cars, setCars] = useState<Car[]>([])
   const [loading, setLoading] = useState(true)
   const [categoryName, setCategoryName] = useState<string>("")
-  const [categoryObj, setCategoryObj] = useState<any>(null)
+  const [categoryObj, setCategoryObj] = useState<Category | null>(null)
 
   const { data: categoriesData, loading: categoriesLoading } = useCategories();
   const categories = categoriesData?.data || [];
 
+  // Helper function to extract ID from string or PopulatedCategory
+  const getId = (item: string | PopulatedCategory): string => {
+    return typeof item === 'string' ? item : item.id || '';
+  };
+
   // Build lookup maps
-  const carTypeMap = categories.filter((c: any) => c.type === 'carType').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const transmissionMap = categories.filter((c: any) => c.type === 'transmission').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const fuelTypeMap = categories.filter((c: any) => c.type === 'fuelType').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const tagMap = categories.filter((c: any) => c.type === 'tag').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  type CategoryMap = Record<string, string>;
+  const carTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'carType' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const transmissionMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'transmission' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const fuelTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'fuelType' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const tagMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'tag' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
 
   const loadCarsByCategory = useCallback(async () => {
     try {
@@ -37,31 +52,34 @@ export default function CategoryPage() {
       const decodedId = decodeURIComponent(categoryId)
 
       // First, try to find the category by ID
-      const categoriesResponse = await frontendServices.getCategoriesWithCarCounts()
-      let categoriesArr: any[] = []
+      const categoriesResponse: unknown = await frontendServices.getCategoriesWithCarCounts()
+      let categoriesArr: Category[] = []
 
-      if (categoriesResponse && Array.isArray((categoriesResponse as any).categories)) {
-        categoriesArr = (categoriesResponse as any).categories
-      } else if (categoriesResponse && Array.isArray((categoriesResponse as any).data)) {
-        categoriesArr = (categoriesResponse as any).data
+      if (categoriesResponse && typeof categoriesResponse === 'object') {
+        const response = categoriesResponse as { categories?: Category[]; data?: Category[] }
+        if (Array.isArray(response.categories)) {
+          categoriesArr = response.categories
+        } else if (Array.isArray(response.data)) {
+          categoriesArr = response.data
+        }
       }
 
-      let category = categoriesArr.find((cat: any) => cat.id === decodedId)
+      let category: Category | undefined = categoriesArr.find((cat: Category) => cat.id === decodedId)
 
       if (!category) {
         // If not found by ID, try by name (fallback)
         category = categoriesArr.find(
-          (cat: any) => (cat as any).name && (cat as any).name.toLowerCase() === decodedId.toLowerCase(),
+          (cat: Category) => cat.name && cat.name.toLowerCase() === decodedId.toLowerCase(),
         )
       }
 
       if (category) {
-        setCategoryName((category as any).name)
+        setCategoryName(category.name)
         setCategoryObj(category)
 
         // Use categoryId to fetch cars
         const response = await frontendServices.getCars({
-          categoryId: (category as any).id,
+          categoryId: category.id || '',
           limit: 50, // Get more cars for category pages
         })
         setCars((response.data as unknown as Car[]) || [])
@@ -163,10 +181,10 @@ export default function CategoryPage() {
                   <div key={car.id} className="group">
                     <CarCard
                       car={car}
-                      carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[id]).filter(Boolean)}
-                      transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[id]).filter(Boolean)}
-                      fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[id]).filter(Boolean)}
-                      tagNames={(car.tagIds || []).map((id) => tagMap[id]).filter(Boolean)}
+                      carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[getId(id)]).filter(Boolean)}
+                      transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[getId(id)]).filter(Boolean)}
+                      fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[getId(id)]).filter(Boolean)}
+                      tagNames={(car.tagIds || []).map((id) => tagMap[getId(id)]).filter(Boolean)}
                       className="h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-gray-800/50 border-gray-700 backdrop-blur-sm"
                     />
                   </div>
@@ -180,7 +198,7 @@ export default function CategoryPage() {
               </div>
               <h3 className="text-2xl font-semibold text-white mb-4">No Cars Found</h3>
               <p className="text-gray-400 mb-8 max-w-md mx-auto">
-                We couldn't find any cars in the '{categoryName}' category. Check back later for new arrivals or explore
+                We couldn&apos;t find any cars in the &apos;{categoryName}&apos; category. Check back later for new arrivals or explore
                 other categories.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

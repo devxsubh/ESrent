@@ -43,6 +43,7 @@ interface CarDetailsInterface {
   tags?: string[]
   description?: string
   brand?: string
+  brandId?: string | { id: string; name: string; logo: string }
   model?: string
   carTypeIds?: string[]
   transmissionIds?: string[]
@@ -65,51 +66,54 @@ export default function CarDetails() {
     data: car,
     loading,
     error,
-  } = useCar(carId) as { data: CarDetailsInterface | null; loading: boolean; error: any }
+  } = useCar(carId) as { data: CarDetailsInterface | null; loading: boolean; error: Error | null }
 
-  const { data: brandData } = useBrand((car as any)?.brandId || "");
+  const brandIdValue = typeof car?.brandId === 'string' ? car.brandId : car?.brandId?.id || "";
+  const { data: brandData } = useBrand(brandIdValue);
   
   // Debug brand data
   useEffect(() => {
     if (brandData) {
           // console.log('Brand data:', brandData);
-          // console.log('Car brandId:', (car as any)?.brandId);
+          // console.log('Car brandId:', brandIdValue);
       if (brandData.data && Array.isArray(brandData.data)) {
-        const brand = brandData.data.find(b => b.id === (car as any)?.brandId);
+        const brand = brandData.data.find(b => b.id === brandIdValue);
         // console.log('Found brand:', brand);
         // console.log('Brand logo URL:', brand?.logo);
       }
     }
-  }, [brandData, car]);
+  }, [brandData, brandIdValue]);
 
   const { data: categoriesData, loading: categoriesLoading } = useCategories()
   const categories = categoriesData?.data || []
 
   // Build lookup maps
-  const carTypeMap = categories
-    .filter((c: any) => c.type === "carType")
-    .reduce((acc: any, c: any) => {
+  type CategoryMap = Record<string, string>;
+  
+  const carTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === "carType" && !!c.id)
+    .reduce((acc: CategoryMap, c) => {
       if (c.id) acc[c.id] = c.name
       return acc
     }, {})
 
-  const transmissionMap = categories
-    .filter((c: any) => c.type === "transmission")
-    .reduce((acc: any, c: any) => {
+  const transmissionMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === "transmission" && !!c.id)
+    .reduce((acc: CategoryMap, c) => {
       if (c.id) acc[c.id] = c.name
       return acc
     }, {})
 
-  const fuelTypeMap = categories
-    .filter((c: any) => c.type === "fuelType")
-    .reduce((acc: any, c: any) => {
+  const fuelTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === "fuelType" && !!c.id)
+    .reduce((acc: CategoryMap, c) => {
       if (c.id) acc[c.id] = c.name
       return acc
     }, {})
 
-  const tagMap = categories
-    .filter((c: any) => c.type === "tag")
-    .reduce((acc: any, c: any) => {
+  const tagMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === "tag" && !!c.id)
+    .reduce((acc: CategoryMap, c) => {
       if (c.id) acc[c.id] = c.name
       return acc
     }, {})
@@ -311,7 +315,7 @@ export default function CarDetails() {
                     let brandName = null;
                     
                     if (brandData && brandData.data && Array.isArray(brandData.data)) {
-                      const brand = brandData.data.find(b => b.id === (car as any)?.brandId);
+                      const brand = brandData.data.find(b => b.id === brandIdValue);
                       if (brand && brand.logo) {
                         brandLogo = brand.logo;
                         brandName = brand.name;

@@ -1,35 +1,26 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { 
-  Car, 
+  Car as CarIcon, 
   Building2, 
   Tag, 
   Star, 
   TrendingUp, 
-  TrendingDown, 
-  Users, 
-  Calendar,
-  MapPin,
-  DollarSign,
   BarChart3,
-  PieChart,
   Activity,
-  Eye,
-  Heart,
-  MessageSquare,
   Clock,
-  Award,
-  Target,
-  Zap
+  Zap,
+  RefreshCw,
 } from 'lucide-react';
 import { useCars } from '@/hooks/useApi';
 import { useCategories } from '@/hooks/useApi';
 import { useRouter } from 'next/navigation';
+import { Car as CarType, PopulatedCategory } from '@/types/car';
+import { Brand } from '@/types/brand';
 
 interface AnalyticsData {
   totalRevenue: number;
@@ -45,34 +36,6 @@ interface AnalyticsData {
   };
   geographicData: Array<{ location: string; cars: number; percentage: number }>;
   timeSeriesData: Array<{ date: string; cars: number; revenue: number }>;
-}
-
-interface Car {
-  id: string;
-  name: string;
-  brand: string;
-  brandId: any;
-  originalPrice: number;
-  discountedPrice?: number;
-  available: boolean;
-  featured: boolean;
-  carTypeIds: any[];
-  createdAt: string;
-}
-
-interface Brand {
-  id: string;
-  name: string;
-  logo: string;
-  featured: boolean;
-  carCount: number;
-}
-
-interface Category {
-  id: string;
-  name: string;
-  image?: string;
-  featured: boolean;
 }
 
 interface Review {
@@ -122,8 +85,8 @@ export default function AdminDashboard() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [analyticsLoading, setAnalyticsLoading] = useState(true);
 
-  const cars = carsData?.data || [];
-  const categories = categoriesData?.data || [];
+  const cars = useMemo(() => carsData?.data || [], [carsData?.data]);
+  const categories = useMemo(() => categoriesData?.data || [], [categoriesData?.data]);
 
   // Fetch real stats from APIs
   useEffect(() => {
@@ -185,7 +148,7 @@ export default function AdminDashboard() {
         const brandsData = await brandsRes.json();
         const reviewsData = await reviewsRes.json();
 
-        const allCars: Car[] = carsData.data || [];
+        const allCars: CarType[] = carsData.data || [];
         const allBrands: Brand[] = brandsData.data || [];
         const allReviews: Review[] = reviewsData.data || [];
 
@@ -202,11 +165,13 @@ export default function AdminDashboard() {
         const currentMonth = new Date().getMonth();
         const currentYear = new Date().getFullYear();
         const currentMonthCars = allCars.filter(car => {
+          if (!car.createdAt) return false;
           const carDate = new Date(car.createdAt);
           return carDate.getMonth() === currentMonth && carDate.getFullYear() === currentYear;
         }).length;
         
         const lastMonthCars = allCars.filter(car => {
+          if (!car.createdAt) return false;
           const carDate = new Date(car.createdAt);
           const lastMonth = currentMonth === 0 ? 11 : currentMonth - 1;
           const lastMonthYear = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -217,9 +182,12 @@ export default function AdminDashboard() {
 
         // Calculate top performing brands
         const brandPerformance = allBrands.map(brand => {
-          const brandCars = allCars.filter(car => 
-            car.brandId?.name === brand.name || car.brand === brand.name
-          );
+          const brandCars = allCars.filter(car => {
+            if (typeof car.brandId === 'object' && car.brandId !== null) {
+              return car.brandId.name === brand.name;
+            }
+            return car.brand === brand.name;
+          });
           const brandRevenue = brandCars.reduce((sum, car) => {
             const price = car.discountedPrice || car.originalPrice;
             return sum + (price || 0);
@@ -235,9 +203,13 @@ export default function AdminDashboard() {
         // Calculate popular categories
         const categoryStats = categories.map(category => {
           const categoryCars = allCars.filter(car => 
-            car.carTypeIds?.some((type: any) => 
-              typeof type === 'string' ? type === category.name : type?.name === category.name
-            )
+            car.carTypeIds?.some((type: string | PopulatedCategory) => {
+              if (typeof type === 'string') {
+                return type === category.name;
+              } else {
+                return type?.name === category.name;
+              }
+            })
           );
           const percentage = allCars.length > 0 ? (categoryCars.length / allCars.length) * 100 : 0;
           
@@ -259,10 +231,16 @@ export default function AdminDashboard() {
         
         // Add recent cars
         const recentCars = allCars
-          .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+          .filter(car => car.createdAt)
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })
           .slice(0, 2);
         
         recentCars.forEach(car => {
+          if (!car.createdAt) return;
           const timeAgo = getTimeAgo(new Date(car.createdAt));
           recentActivity.push({
             type: 'car',
@@ -311,6 +289,7 @@ export default function AdminDashboard() {
           const monthName = date.toLocaleDateString('en-US', { month: 'short' });
           
           const monthCars = allCars.filter(car => {
+            if (!car.createdAt) return false;
             const carDate = new Date(car.createdAt);
             return carDate.getMonth() === date.getMonth() && carDate.getFullYear() === date.getFullYear();
           });
@@ -364,7 +343,7 @@ export default function AdminDashboard() {
 
   const getActivityIcon = (type: string) => {
     switch (type) {
-      case 'car': return <Car className="w-4 h-4" />;
+      case 'car': return <CarIcon className="w-4 h-4" />;
       case 'review': return <Star className="w-4 h-4" />;
       case 'brand': return <Building2 className="w-4 h-4" />;
       case 'category': return <Tag className="w-4 h-4" />;
@@ -401,83 +380,95 @@ export default function AdminDashboard() {
     alert('Reports feature coming soon! This will show detailed analytics and export options.');
   };
 
+  const [refreshing, setRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    // Refresh all data
+    window.location.reload();
+  };
+
   return (
-    <div className="space-y-8">
+    <div className="p-6 space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="space-y-2">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <BarChart3 className="w-7 h-7 text-primary" />
             Admin Dashboard
           </h1>
-          <p className="text-muted-foreground">Welcome back! Here's what's happening with your platform.</p>
+          <p className="text-muted-foreground mt-1">
+            Welcome back! Here&apos;s what&apos;s happening with your platform.
+          </p>
         </div>
-        <Button className="bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 shadow-lg shadow-primary/25">
-          <BarChart3 className="h-4 w-4 mr-2" />
-          View Analytics
+        
+        <Button onClick={handleRefresh} variant="outline" className="gap-2">
+          <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+          Refresh
         </Button>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="border-0 bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center">
-                <Car className="w-6 h-6 text-white" />
-              </div>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Cars</p>
-                <p className="text-2xl font-bold text-blue-400">
+                <p className="text-2xl font-bold text-foreground">
                   {statsLoading ? '...' : stats.totalCars}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <CarIcon className="w-5 h-5 text-primary" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-green-500/10 to-green-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                <Building2 className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Brands</p>
-                <p className="text-2xl font-bold text-green-400">
+                <p className="text-2xl font-bold text-foreground">
                   {statsLoading ? '...' : stats.totalBrands}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Building2 className="w-5 h-5 text-green-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center">
-                <Tag className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Categories</p>
-                <p className="text-2xl font-bold text-purple-400">
+                <p className="text-2xl font-bold text-foreground">
                   {statsLoading ? '...' : stats.totalCategories}
                 </p>
               </div>
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <Tag className="w-5 h-5 text-blue-600" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 bg-gradient-to-br from-orange-500/10 to-orange-600/5 backdrop-blur-sm">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center">
-                <Star className="w-6 h-6 text-white" />
-              </div>
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Reviews</p>
-                <p className="text-2xl font-bold text-orange-400">
+                <p className="text-2xl font-bold text-foreground">
                   {statsLoading ? '...' : stats.totalReviews}
                 </p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-orange-500/10 flex items-center justify-center">
+                <Star className="w-5 h-5 text-orange-600" />
               </div>
             </div>
           </CardContent>
@@ -487,7 +478,7 @@ export default function AdminDashboard() {
       {/* Analytics Section */}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+          <h2 className="text-xl font-bold text-foreground">
             Analytics & Insights
           </h2>
           <div className="flex items-center gap-2">
@@ -499,7 +490,7 @@ export default function AdminDashboard() {
         </div>
 
         {/* Recent Activity */}
-        <Card className="border-0 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+        <Card className="bg-card border-border/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Activity className="w-5 h-5" />
@@ -548,7 +539,7 @@ export default function AdminDashboard() {
       </div>
 
       {/* Quick Actions */}
-      <Card className="border-0 bg-gradient-to-br from-card to-card/50 backdrop-blur-sm">
+      <Card className="bg-card border-border/50">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Zap className="w-5 h-5" />
@@ -562,7 +553,7 @@ export default function AdminDashboard() {
               className="h-20 flex-col gap-2 border-border/50 hover:bg-accent/50 transition-all duration-200 hover:scale-105"
               onClick={handleAddCar}
             >
-              <Car className="w-6 h-6" />
+              <CarIcon className="w-6 h-6" />
               <span>Add New Car</span>
             </Button>
             <Button 

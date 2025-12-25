@@ -4,6 +4,29 @@ import { dbConnect } from '@/lib/mongodb';
 import type { ICar } from '@/lib/models/carSchema';
 import { Model } from 'mongoose';
 
+// Type for MongoDB document with _id
+interface MongoDocument {
+  _id?: { toString: () => string } | string;
+  __v?: number;
+  [key: string]: unknown;
+}
+
+// Type for processed car data that might have dailyPrice
+interface ProcessedCarData extends CreateCarData {
+  dailyPrice?: number;
+}
+
+// Helper function to transform MongoDB document to Car type
+function transformMongoDocToCar(doc: MongoDocument): Car {
+  const car = { ...doc } as Car;
+  if (doc._id) {
+    car.id = typeof doc._id === 'object' ? doc._id.toString() : doc._id;
+  }
+  if ('_id' in car) delete (car as MongoDocument)._id;
+  if ('__v' in car) delete (car as MongoDocument).__v;
+  return car;
+}
+
 export interface CarFilters {
   brand?: string;
   carTypeId?: string;
@@ -33,12 +56,12 @@ export class CarService {
       await dbConnect();
       
       // Handle migration from dailyPrice to originalPrice
-      const processedData = { ...carData };
+      const processedData: ProcessedCarData = { ...carData };
       
       // If dailyPrice exists in the data, map it to originalPrice
-      if ('dailyPrice' in processedData && !processedData.originalPrice) {
-        (processedData as any).originalPrice = (processedData as any).dailyPrice;
-        delete (processedData as any).dailyPrice;
+      if ('dailyPrice' in processedData && processedData.dailyPrice && !processedData.originalPrice) {
+        processedData.originalPrice = processedData.dailyPrice;
+        delete processedData.dailyPrice;
       }
       
       // Ensure originalPrice exists
@@ -71,11 +94,13 @@ export class CarService {
       
       const car = new CarModel(processedData);
       const savedCar = await car.save();
-      const carObj = savedCar.toJSON();
-      (carObj as any).id = carObj._id?.toString();
-      if ('_id' in carObj) delete (carObj as any)._id;
-      if ('__v' in carObj) delete (carObj as any).__v;
-      return carObj as unknown as Car;
+      const carObj = savedCar.toJSON() as MongoDocument & Car;
+      if (carObj._id) {
+        carObj.id = typeof carObj._id === 'object' ? carObj._id.toString() : carObj._id;
+      }
+      if ('_id' in carObj) delete carObj._id;
+      if ('__v' in carObj) delete carObj.__v;
+      return carObj as Car;
     } catch (error) {
       console.error('Error creating car:', error);
       
@@ -110,11 +135,8 @@ export class CarService {
       await dbConnect();
       const car = await CarModel.findById(id);
       if (!car) return null;
-      const carObj = car.toJSON();
-      (carObj as any).id = carObj._id?.toString();
-      if ('_id' in carObj) delete (carObj as any)._id;
-      if ('__v' in carObj) delete (carObj as any).__v;
-      return carObj as unknown as Car;
+      const carObj = car.toJSON() as MongoDocument;
+      return transformMongoDocToCar(carObj);
     } catch (error) {
       console.error('Error getting car by ID:', error);
       throw new Error('Failed to get car');
@@ -209,12 +231,7 @@ export class CarService {
       const totalPages = Math.ceil(total / limit);
 
       return {
-        cars: cars.map(car => {
-          (car as any).id = car._id?.toString();
-          if ('_id' in car) delete (car as any)._id;
-          if ('__v' in car) delete (car as any).__v;
-          return car as unknown as Car;
-        }),
+        cars: cars.map(car => transformMongoDocToCar(car as MongoDocument)),
         total,
         page,
         totalPages
@@ -238,12 +255,12 @@ export class CarService {
       }
       
       // Handle migration from dailyPrice to originalPrice
-      const processedData = { ...updateData };
+      const processedData: ProcessedCarData = { ...updateData };
       
       // If dailyPrice exists in the data, map it to originalPrice
-      if ('dailyPrice' in processedData && !processedData.originalPrice) {
-        (processedData as any).originalPrice = (processedData as any).dailyPrice;
-        delete (processedData as any).dailyPrice;
+      if ('dailyPrice' in processedData && processedData.dailyPrice && !processedData.originalPrice) {
+        processedData.originalPrice = processedData.dailyPrice;
+        delete processedData.dailyPrice;
       }
       
       // Validate price values if provided
@@ -279,11 +296,8 @@ export class CarService {
         { new: true, runValidators: true }
       );
       if (!car) return null;
-      const carObj = car.toJSON();
-      (carObj as any).id = carObj._id?.toString();
-      if ('_id' in carObj) delete (carObj as any)._id;
-      if ('__v' in carObj) delete (carObj as any).__v;
-      return carObj as unknown as Car;
+      const carObj = car.toJSON() as MongoDocument;
+      return transformMongoDocToCar(carObj);
     } catch (error) {
       console.error('Error updating car:', error);
       

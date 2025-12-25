@@ -1,12 +1,13 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 // import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { 
@@ -19,7 +20,10 @@ import {
   Video,
   Calendar,
   Star,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Search,
+  Filter
 } from 'lucide-react';
 import { toast } from '@/components/hooks/use-toast';
 import { VideoThumbnail } from "@/components/ui/video-thumbnail";
@@ -55,6 +59,8 @@ export default function VideoTestimonialsPage() {
     title: '',
     comment: '',
   });
+  const [searchQuery, setSearchQuery] = useState('');
+  const [featuredFilter, setFeaturedFilter] = useState<string>('all');
 
   // Fetch video testimonials
   const fetchVideoTestimonials = async () => {
@@ -362,25 +368,55 @@ export default function VideoTestimonialsPage() {
     );
   }
 
+  const stats = {
+    total: videoTestimonials.length,
+    featured: videoTestimonials.filter(v => v.isFeatured).length,
+    standard: videoTestimonials.filter(v => !v.isFeatured).length,
+  };
+
+  const filteredTestimonials = videoTestimonials.filter(testimonial => {
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      if (!testimonial.title.toLowerCase().includes(query) && 
+          !testimonial.comment.toLowerCase().includes(query)) {
+        return false;
+      }
+    }
+    if (featuredFilter === 'featured' && !testimonial.isFeatured) {
+      return false;
+    }
+    if (featuredFilter === 'standard' && testimonial.isFeatured) {
+      return false;
+    }
+    return true;
+  });
+
   return (
-    <div className="max-w-7xl mx-auto px-6 py-6 space-y-6">
-      <div className="flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20">
-            <Video className="h-5 w-5" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold">Video Testimonials</h1>
-            <p className="text-muted-foreground">Manage customer video testimonials</p>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
+            <Video className="w-7 h-7 text-primary" />
+            Video Testimonials
+          </h1>
+          <p className="text-muted-foreground mt-1">
+            Manage customer video testimonials
+          </p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button onClick={openNewDialog} className="flex items-center gap-2">
-              <Plus className="h-4 w-4" />
-              Upload Video Testimonial
-            </Button>
-          </DialogTrigger>
+        
+        <div className="flex gap-2">
+          <Button onClick={fetchVideoTestimonials} variant="outline" className="gap-2">
+            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogTrigger asChild>
+              <Button onClick={openNewDialog} className="bg-primary hover:bg-primary/90">
+                <Plus className="h-4 w-4 mr-2" />
+                Upload Video Testimonial
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>
@@ -586,112 +622,187 @@ export default function VideoTestimonialsPage() {
             </form>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       {/* Stats Cards */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Total Videos</p>
+                <p className="text-2xl font-bold text-foreground">{stats.total}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                <Video className="w-5 h-5 text-primary" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
 
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Featured</p>
+                <p className="text-2xl font-bold text-purple-600">{stats.featured}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-purple-500/10 flex items-center justify-center">
+                <Star className="w-5 h-5 text-purple-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Standard</p>
+                <p className="text-2xl font-bold text-blue-600">{stats.standard}</p>
+              </div>
+              <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <Video className="w-5 h-5 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search by title, comment..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10"
+          />
+        </div>
         
-        {/* Pending card removed */}
+        <Select value={featuredFilter} onValueChange={setFeaturedFilter}>
+          <SelectTrigger className="w-full sm:w-[180px]">
+            <Filter className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Filter by status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Videos</SelectItem>
+            <SelectItem value="featured">Featured</SelectItem>
+            <SelectItem value="standard">Standard</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
 
       {/* Video Testimonials Grid */}
-      <Card className='border border-border/50 rounded-xl p-2'>
-        <CardContent>
-          {videoTestimonials.length === 0 ? (
-            <div className="text-center py-12">
-              <Video className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No video testimonials yet</h3>
-              <p className="text-muted-foreground mb-4">
-                Start by uploading your first video testimonial
-              </p>
-              <Button onClick={openNewDialog}>
-                <Plus className="h-4 w-4 mr-2" />
-                Upload First Video
-              </Button>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {videoTestimonials.map((testimonial) => (
-                <Card key={testimonial._id} className="overflow-hidden group border border-border/50 rounded-xl">
-                  <div className="relative h-40 w-full bg-muted">
-                    <VideoThumbnail
-                      videoUrl={testimonial.videoUrl}
-                      thumbnailUrl={testimonial.thumbnailUrl}
-                        alt="Video thumbnail"
-                      className="w-full h-full"
-                      time={1}
-                      fallbackIcon={<Video className="h-8 w-8 text-muted-foreground" />}
-                      />
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                      <div className="bg-black/60 rounded-full p-3">
-                        <Play className="h-5 w-5 text-white" />
-                      </div>
-                    </div>
-                    {testimonial.duration && (
-                      <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
-                        {formatDuration(testimonial.duration)}
-                      </div>
-                    )}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      ) : filteredTestimonials.length === 0 ? (
+        <Card className="bg-card border-border/50">
+          <CardContent className="p-12 text-center">
+            <Video className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-2">No Video Testimonials Found</h3>
+            <p className="text-muted-foreground">
+              {searchQuery || featuredFilter !== 'all'
+                ? 'Try adjusting your search or filters'
+                : 'Start by uploading your first video testimonial'}
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredTestimonials.map((testimonial) => (
+            <Card key={testimonial._id} className="bg-card border-border/50 hover:shadow-lg transition-shadow overflow-hidden group">
+              <div className="relative h-40 w-full bg-muted">
+                <VideoThumbnail
+                  videoUrl={testimonial.videoUrl}
+                  thumbnailUrl={testimonial.thumbnailUrl}
+                  alt="Video thumbnail"
+                  className="w-full h-full"
+                  time={1}
+                  fallbackIcon={<Video className="h-8 w-8 text-muted-foreground" />}
+                />
+                <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <div className="bg-black/60 rounded-full p-3">
+                    <Play className="h-5 w-5 text-white" />
                   </div>
-                  <CardContent className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div className="min-w-0">
-                        <h3 className="font-semibold text-sm sm:text-base truncate">{testimonial.title}</h3>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(testimonial)}
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{testimonial.comment}</p>
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                      <Calendar className="h-3 w-3" />
-                      <span>
-                        {new Date(testimonial.createdAt).toLocaleDateString()}
-                      </span>
-                    </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => window.open(testimonial.videoUrl, '_blank')}
-                      >
-                        <Eye className="h-4 w-4 mr-2" />
-                        View
-                      </Button>
-                      {/* Approval toggle removed */}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleFeaturedToggle(testimonial._id, testimonial.isFeatured)}
-                      >
-                        {testimonial.isFeatured ? (
-                          <>
-                            <Star className="h-4 w-4 mr-2" />
-                            Unfeature
-                          </>
-                        ) : (
-                          <>
-                            <Star className="h-4 w-4 mr-2" />
-                            Feature
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => handleDelete(testimonial._id)}
-                        className="col-span-2"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                </div>
+                {testimonial.duration && (
+                  <div className="absolute bottom-2 right-2 bg-black/75 text-white text-xs px-2 py-1 rounded">
+                    {formatDuration(testimonial.duration)}
+                  </div>
+                )}
+              </div>
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between gap-2 mb-2">
+                  <div className="min-w-0">
+                    <h3 className="font-semibold text-sm sm:text-base truncate">{testimonial.title}</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {getStatusBadge(testimonial)}
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{testimonial.comment}</p>
+                <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                  <Calendar className="h-3 w-3" />
+                  <span>
+                    {new Date(testimonial.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open(testimonial.videoUrl, '_blank')}
+                  >
+                    <Eye className="h-4 w-4 mr-2" />
+                    View
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleEdit(testimonial)}
+                  >
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleFeaturedToggle(testimonial._id, testimonial.isFeatured)}
+                    className="col-span-2"
+                  >
+                    {testimonial.isFeatured ? (
+                      <>
+                        <Star className="h-4 w-4 mr-2" />
+                        Unfeature
+                      </>
+                    ) : (
+                      <>
+                        <Star className="h-4 w-4 mr-2" />
+                        Feature
+                      </>
+                    )}
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => handleDelete(testimonial._id)}
+                    className="col-span-2"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+

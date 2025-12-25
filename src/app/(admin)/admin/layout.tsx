@@ -15,7 +15,23 @@ export default function AdminLayout({
   const pathname = usePathname();
   const [loading, setLoading] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const { isAuthenticated, isInitialized } = useAuth();
+
+  // Load sidebar collapsed state from localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebarCollapsed');
+    if (savedState !== null) {
+      setIsSidebarCollapsed(savedState === 'true');
+    }
+  }, []);
+
+  // Save sidebar collapsed state to localStorage
+  const handleToggleSidebar = () => {
+    const newState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newState);
+    localStorage.setItem('sidebarCollapsed', String(newState));
+  };
 
   useEffect(() => {
     setLoading(false);
@@ -77,11 +93,11 @@ export default function AdminLayout({
         ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'} 
         lg:translate-x-0 transition-transform duration-200 ease-in-out
       `}>
-        <Sidebar />
+        <Sidebar collapsed={isSidebarCollapsed} onToggle={handleToggleSidebar} />
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-y-auto p-4 lg:p-8 w-full bg-background">
+      <main className="flex-1 overflow-y-auto p-4 lg:p-8 w-full bg-background transition-all duration-300">
         <div className="pt-14 lg:pt-0">
           {children}
         </div>

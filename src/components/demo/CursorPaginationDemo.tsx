@@ -60,12 +60,55 @@ export function CursorPaginationDemo() {
   });
 
   // Flatten data from all pages
-  const carsData = carsQuery.data?.pages.flatMap((page: any) => page.data) || [];
-  const brandsData = brandsQuery.data?.pages.flatMap((page: any) => page.data) || [];
-  const categoriesData = categoriesQuery.data?.pages.flatMap((page: any) => page.data) || [];
-  const reviewsData = reviewsQuery.data?.pages.flatMap((page: any) => page.data) || [];
+  interface PaginatedPage<T> {
+    data: T[];
+    nextCursor?: string;
+  }
+  
+  const carsData = carsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
+  const brandsData = brandsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
+  const categoriesData = categoriesQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
+  const reviewsData = reviewsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
 
-  const renderCarItem = (car: any, index: number) => (
+  interface CarItem {
+    _id?: string;
+    name: string;
+    brand?: { name: string };
+    category?: { name: string };
+    transmission?: string;
+    fuelType?: string;
+    seats?: number;
+    rating?: number;
+    reviewCount?: number;
+    pricePerDay?: number;
+  }
+
+  interface BrandItem {
+    _id?: string;
+    name: string;
+    description?: string;
+    carCount?: number;
+    featured?: boolean;
+  }
+
+  interface CategoryItem {
+    _id?: string;
+    name: string;
+    description?: string;
+    carCount?: number;
+    featured?: boolean;
+  }
+
+  interface ReviewItem {
+    _id?: string;
+    userName: string;
+    rating: number;
+    title: string;
+    comment: string;
+    car?: { name: string };
+  }
+
+  const renderCarItem = (car: CarItem, index: number) => (
     <Card key={`${car._id}-${index}`} className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start justify-between">
@@ -94,7 +137,7 @@ export function CursorPaginationDemo() {
     </Card>
   );
 
-  const renderBrandItem = (brand: any, index: number) => (
+  const renderBrandItem = (brand: BrandItem, index: number) => (
     <Card key={`${brand._id}-${index}`} className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
@@ -114,7 +157,7 @@ export function CursorPaginationDemo() {
     </Card>
   );
 
-  const renderCategoryItem = (category: any, index: number) => (
+  const renderCategoryItem = (category: CategoryItem, index: number) => (
     <Card key={`${category._id}-${index}`} className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-center gap-4">
@@ -134,7 +177,7 @@ export function CursorPaginationDemo() {
     </Card>
   );
 
-  const renderReviewItem = (review: any, index: number) => (
+  const renderReviewItem = (review: ReviewItem, index: number) => (
     <Card key={`${review._id}-${index}`} className="hover:shadow-md transition-shadow">
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
