@@ -18,12 +18,12 @@ interface ProcessedCarData extends CreateCarData {
 
 // Helper function to transform MongoDB document to Car type
 function transformMongoDocToCar(doc: MongoDocument): Car {
-  const car = { ...doc } as Car;
+  const car = { ...doc } as unknown as Car;
   if (doc._id) {
     car.id = typeof doc._id === 'object' ? doc._id.toString() : doc._id;
   }
-  if ('_id' in car) delete (car as MongoDocument)._id;
-  if ('__v' in car) delete (car as MongoDocument).__v;
+  if ('_id' in car) delete (car as unknown as MongoDocument)._id;
+  if ('__v' in car) delete (car as unknown as MongoDocument).__v;
   return car;
 }
 
@@ -94,7 +94,7 @@ export class CarService {
       
       const car = new CarModel(processedData);
       const savedCar = await car.save();
-      const carObj = savedCar.toJSON() as MongoDocument & Car;
+      const carObj = savedCar.toJSON() as unknown as MongoDocument & Car;
       if (carObj._id) {
         carObj.id = typeof carObj._id === 'object' ? carObj._id.toString() : carObj._id;
       }
@@ -255,7 +255,7 @@ export class CarService {
       }
       
       // Handle migration from dailyPrice to originalPrice
-      const processedData: ProcessedCarData = { ...updateData };
+      const processedData: ProcessedCarData = { ...updateData } as ProcessedCarData;
       
       // If dailyPrice exists in the data, map it to originalPrice
       if ('dailyPrice' in processedData && processedData.dailyPrice && !processedData.originalPrice) {

@@ -65,10 +65,10 @@ export function CursorPaginationDemo() {
     nextCursor?: string;
   }
   
-  const carsData = carsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
-  const brandsData = brandsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
-  const categoriesData = categoriesQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
-  const reviewsData = reviewsQuery.data?.pages.flatMap((page: PaginatedPage<unknown>) => page.data) || [];
+  const carsData = (carsQuery.data?.pages.flatMap((page) => page.data) || []) as unknown as CarItem[];
+  const brandsData = (brandsQuery.data?.pages.flatMap((page) => page.data) || []) as unknown as BrandItem[];
+  const categoriesData = (categoriesQuery.data?.pages.flatMap((page) => page.data) || []) as unknown as CategoryItem[];
+  const reviewsData = (reviewsQuery.data?.pages.flatMap((page) => page.data) || []) as unknown as ReviewItem[];
 
   interface CarItem {
     _id?: string;
@@ -106,6 +106,7 @@ export function CursorPaginationDemo() {
     title: string;
     comment: string;
     car?: { name: string };
+    createdAt?: string | Date;
   }
 
   const renderCarItem = (car: CarItem, index: number) => (
@@ -199,7 +200,7 @@ export function CursorPaginationDemo() {
             <h4 className="font-medium mb-1">{review.title}</h4>
             <p className="text-gray-600 text-sm">{review.comment}</p>
             <div className="text-xs text-gray-500 mt-2">
-              {new Date(review.createdAt).toLocaleDateString()}
+              {review.createdAt ? new Date(review.createdAt).toLocaleDateString() : 'No date'}
             </div>
           </div>
         </div>

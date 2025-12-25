@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
-import { Car } from '@/types/car';
+import { Car, PopulatedCategory } from '@/types/car';
 import { Category } from '@/types/category';
 import { Button } from "@/components/ui/button";
 import { FilterModal, FilterValues } from './FilterModal';
@@ -74,6 +74,12 @@ export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
     return map;
   }, [categories]);
 
+  // Helper function to extract ID from string or PopulatedCategory
+  const getId = (item: string | PopulatedCategory | undefined): string => {
+    if (!item) return '';
+    return typeof item === 'string' ? item : item.id || '';
+  };
+
   const handleFiltersChange = (filters: FilterValues) => {
     setShouldResetFilters(false);
     setSelectedFilters(filters);
@@ -81,10 +87,12 @@ export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
     // Map filter names to IDs using categories
     const typeIds = categories
       .filter((c) => c.type === 'carType' && filters.types.includes(c.name.toLowerCase()))
-      .map((c) => c.id);
+      .map((c) => c.id)
+      .filter((id): id is string => !!id);
     const tagIds = categories
       .filter((c) => c.type === 'tag' && filters.tags.includes(c.name.toLowerCase()))
-      .map((c) => c.id);
+      .map((c) => c.id)
+      .filter((id): id is string => !!id);
     const transmissionId = categories.find(
       (c) => c.type === 'transmission' && c.name.toLowerCase() === filters.transmission
     )?.id;
@@ -93,11 +101,11 @@ export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
       // Filter by price
       const matchesPrice = (car.discountedPrice || car.originalPrice || 0) >= 1000 && (car.discountedPrice || car.originalPrice || 0) <= filters.maxPrice;
       const matchesTransmission = !filters.transmission ||
-        (Array.isArray(car.transmissionIds) && transmissionId && car.transmissionIds.includes(transmissionId));
+        (Array.isArray(car.transmissionIds) && transmissionId && car.transmissionIds.some(id => getId(id) === transmissionId));
       const matchesType = typeIds.length === 0 ||
-        (Array.isArray(car.carTypeIds) && car.carTypeIds.some((id) => typeIds.includes(id)));
+        (Array.isArray(car.carTypeIds) && car.carTypeIds.some((id) => typeIds.includes(getId(id))));
       const matchesTags = tagIds.length === 0 ||
-        (Array.isArray(car.tagIds) && car.tagIds.some((id) => tagIds.includes(id)));
+        (Array.isArray(car.tagIds) && car.tagIds.some((id) => tagIds.includes(getId(id))));
       return matchesPrice && matchesTransmission && matchesType && matchesTags;
     });
     setFilteredCars(filtered);
@@ -202,10 +210,10 @@ export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
             <CarCard
               key={car.id}
               car={car}
-              carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[id]).filter(Boolean)}
-              transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[id]).filter(Boolean)}
-              fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[id]).filter(Boolean)}
-              tagNames={(car.tagIds || []).map((id) => tagMap[id]).filter(Boolean)}
+              carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[getId(id)]).filter(Boolean)}
+              transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[getId(id)]).filter(Boolean)}
+              fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[getId(id)]).filter(Boolean)}
+              tagNames={(car.tagIds || []).map((id) => tagMap[getId(id)]).filter(Boolean)}
               onClick={() => {
                 if (isClient && typeof window !== 'undefined') {
                   localStorage.setItem('previousPage', 'home');

@@ -201,8 +201,8 @@ export const commonValidationRules = {
   }),
   
   fileSize: (maxSizeMB: number, message?: string): ValidationRule => ({
-    custom: (file: File) => {
-      if (file && file.size > maxSizeMB * 1024 * 1024) {
+    custom: (value: unknown) => {
+      if (value && value instanceof File && value.size > maxSizeMB * 1024 * 1024) {
         return message || `File size must be less than ${maxSizeMB}MB`;
       }
       return null;
@@ -210,8 +210,8 @@ export const commonValidationRules = {
   }),
   
   fileType: (allowedTypes: string[], message?: string): ValidationRule => ({
-    custom: (file: File) => {
-      if (file && !allowedTypes.includes(file.type)) {
+    custom: (value: unknown) => {
+      if (value && value instanceof File && !allowedTypes.includes(value.type)) {
         return message || `File type must be one of: ${allowedTypes.join(', ')}`;
       }
       return null;

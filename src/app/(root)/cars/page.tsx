@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { Car } from '@/types/car'
+import { Car, PopulatedCategory } from '@/types/car'
 import { Header } from '../home/components/Header'
 import { FilterModal, FilterValues } from '../home/components/FilterModal'
 import { Button } from '@/components/ui/button'
@@ -73,6 +73,11 @@ export default function CarsPage() {
   const { data: categoriesData, loading: categoriesLoading } = useCategories();
   const categories = useMemo(() => categoriesData?.data || [], [categoriesData]);
 
+  // Helper function to extract ID from string or PopulatedCategory
+  const getId = (item: string | PopulatedCategory): string => {
+    return typeof item === 'string' ? item : item.id || '';
+  };
+
   // Build lookup maps
   const carTypeMap = useMemo(() => {
     const map: Record<string, string> = {};
@@ -118,12 +123,12 @@ export default function CarsPage() {
     // Apply other filters (types, tags, price, etc) as before
     if (selectedFilters.types.length > 0) {
       filtered = filtered.filter(car =>
-        Array.isArray(car.carTypeIds) && car.carTypeIds.some(id => selectedFilters.types.includes(carTypeMap[id]?.toLowerCase()))
+        Array.isArray(car.carTypeIds) && car.carTypeIds.some(id => selectedFilters.types.includes(carTypeMap[getId(id)]?.toLowerCase()))
       );
     }
     if (selectedFilters.tags.length > 0) {
       filtered = filtered.filter(car =>
-        Array.isArray(car.tagIds) && car.tagIds.some(id => selectedFilters.tags.includes(tagMap[id]?.toLowerCase()))
+        Array.isArray(car.tagIds) && car.tagIds.some(id => selectedFilters.tags.includes(tagMap[getId(id)]?.toLowerCase()))
       );
     }
     // Filter by price
@@ -150,7 +155,7 @@ export default function CarsPage() {
       const matchesTransmission = !filters.transmission ||
         (Array.isArray(car.transmissionIds) && car.transmissionIds[0] && car.transmissionIds[0] === filters.transmission);
       const matchesCategory = filters.types.length === 0 ||
-        (Array.isArray(car.carTypeIds) && car.carTypeIds[0] && filters.types.includes(car.carTypeIds[0]));
+        (Array.isArray(car.carTypeIds) && car.carTypeIds[0] && filters.types.includes(carTypeMap[getId(car.carTypeIds[0])]?.toLowerCase()));
       // You may want to map IDs to names for a better UX
       return matchesPrice && matchesTransmission && matchesCategory;
     });
@@ -300,10 +305,10 @@ export default function CarsPage() {
               brandName={car.brand}
               seater={car.seater}
               car={car}
-              carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[id]).filter(Boolean)}
-              transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[id]).filter(Boolean)}
-              fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[id]).filter(Boolean)}
-              tagNames={(car.tagIds || []).map((id) => tagMap[id]).filter(Boolean)}
+              carTypeNames={(car.carTypeIds || []).map((id) => carTypeMap[getId(id)]).filter(Boolean)}
+              transmissionNames={(car.transmissionIds || []).map((id) => transmissionMap[getId(id)]).filter(Boolean)}
+              fuelTypeNames={(car.fuelTypeIds || []).map((id) => fuelTypeMap[getId(id)]).filter(Boolean)}
+              tagNames={(car.tagIds || []).map((id) => tagMap[getId(id)]).filter(Boolean)}
             />
           ))}
         </div>

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { Car } from '@/types/car';
+import { Car, PopulatedCategory } from '@/types/car';
 import { Brand } from '@/types/brand';
 import { Button } from '@/components/ui/button';
 import {
@@ -64,6 +64,12 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
   const { toast } = useToast();
   const { error: apiError, handleApiError, clearError: clearApiError } = useApiError();
 
+  // Helper function to extract ID from string or PopulatedCategory
+  const getId = (item: string | PopulatedCategory | undefined): string => {
+    if (!item) return '';
+    return typeof item === 'string' ? item : item.id || '';
+  };
+
   const validationRules = {
     name: {
       ...commonValidationRules.required('Car name is required'),
@@ -83,8 +89,8 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
       ...commonValidationRules.positiveNumber('Original price must be greater than 0')
     },
     discountedPrice: {
-      custom: (value: number) => {
-        if (value && value > 0) {
+      custom: (value: unknown) => {
+        if (value && typeof value === 'number' && value > 0) {
           // This will be validated against originalPrice in the form validation
           return null;
         }
@@ -92,16 +98,16 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
       }
     },
     carTypeIds: {
-      custom: (value: string[]) => {
-        if (!value || value.length === 0) {
+      custom: (value: unknown) => {
+        if (!value || !Array.isArray(value) || value.length === 0) {
           return 'Car type is required';
         }
         return null;
       }
     },
     images: {
-      custom: (value: string[]) => {
-        if (!value || value.length === 0) {
+      custom: (value: unknown) => {
+        if (!value || !Array.isArray(value) || value.length === 0) {
           return 'At least one image is required';
         }
         return null;
@@ -412,7 +418,7 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
               <div className="space-y-2">
                 <Label htmlFor="brand" className="text-card-foreground">Brand *</Label>
                 <Select
-                  value={formData.brandId || ''}
+                  value={typeof formData.brandId === 'string' ? formData.brandId : formData.brandId?.id || ''}
                   onValueChange={(value) => {
                     const selectedBrand = (brands?.data as unknown as Brand[])?.find((b: Brand) => b.id === value);
                     setField('brand', selectedBrand?.name || '');
@@ -510,7 +516,7 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
               <div className="space-y-2">
                 <Label className="text-card-foreground">Car Type *</Label>
                 <Select
-                  value={formData.carTypeIds?.[0] || ''}
+                  value={formData.carTypeIds?.[0] ? getId(formData.carTypeIds[0]) : ''}
                   onValueChange={(value) => setField('carTypeIds', [value])}
                   disabled={categoriesLoading || isSubmitting || uploading}
                 >
@@ -578,14 +584,14 @@ export function CarDialog({ car, open, onOpenChange, onSave }: CarDialogProps) {
                     <label key={cat.id} className="flex items-center gap-1">
                       <input
                         type="checkbox"
-                        checked={!!cat.id && (formData.tagIds || []).includes(cat.id as string)}
+                        checked={!!cat.id && (formData.tagIds || []).some(id => getId(id) === cat.id)}
                         onChange={(e) => {
                           const checked = e.target.checked;
                           if (!cat.id) return;
                           const currentTagIds = formData.tagIds || [];
                           const newTagIds = checked
-                            ? [...currentTagIds.filter((id): id is string => !!id), cat.id as string]
-                            : currentTagIds.filter((id): id is string => !!id && id !== cat.id);
+                            ? [...currentTagIds.map(id => getId(id)).filter((id): id is string => !!id), cat.id as string]
+                            : currentTagIds.map(id => getId(id)).filter((id): id is string => !!id && id !== cat.id);
                           setField('tagIds', newTagIds);
                         }}
                       />
