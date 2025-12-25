@@ -11,7 +11,7 @@ import { ErrorState } from "@/components/ui/empty-state"
 import { useBrand, useCars, useCategories } from "@/hooks/useApi"
 import { ArrowLeft, CarIcon, MapPin, Calendar } from "lucide-react"
 import Image from 'next/image';
-import { Car } from "@/types/car";
+import { Car, PopulatedCategory } from "@/types/car";
 
 export default function BrandPage() {
   const params = useParams()
@@ -31,11 +31,25 @@ export default function BrandPage() {
   const { data: categoriesData, loading: categoriesLoading } = useCategories();
   const categories = categoriesData?.data || [];
 
+  // Helper function to extract ID from string or PopulatedCategory
+  const getId = (item: string | PopulatedCategory): string => {
+    return typeof item === 'string' ? item : item.id || '';
+  };
+
   // Build lookup maps
-  const carTypeMap = categories.filter((c: any) => c.type === 'carType').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const transmissionMap = categories.filter((c: any) => c.type === 'transmission').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const fuelTypeMap = categories.filter((c: any) => c.type === 'fuelType').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
-  const tagMap = categories.filter((c: any) => c.type === 'tag').reduce((acc: any, c: any) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  type CategoryMap = Record<string, string>;
+  const carTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'carType' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const transmissionMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'transmission' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const fuelTypeMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'fuelType' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
+  const tagMap: CategoryMap = categories
+    .filter((c): c is { id: string; name: string; type: string } => c.type === 'tag' && !!c.id)
+    .reduce((acc: CategoryMap, c) => { if (c.id) acc[c.id] = c.name; return acc; }, {});
 
   if (!isClient) {
     return <BrandPageSkeleton />
@@ -191,10 +205,10 @@ export default function BrandPage() {
                         }
                       }}
                       className="h-full transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 bg-gray-800/50 border-gray-700 backdrop-blur-sm"
-                      carTypeNames={Array.isArray(safeCar.carTypeIds) ? safeCar.carTypeIds.map((id: string) => carTypeMap[id]).filter(Boolean) : []}
-                      transmissionNames={Array.isArray(safeCar.transmissionIds) ? safeCar.transmissionIds.map((id: string) => transmissionMap[id]).filter(Boolean) : []}
-                      fuelTypeNames={Array.isArray(safeCar.fuelTypeIds) ? safeCar.fuelTypeIds.map((id: string) => fuelTypeMap[id]).filter(Boolean) : []}
-                      tagNames={Array.isArray(safeCar.tagIds) ? safeCar.tagIds.map((id: string) => tagMap[id]).filter(Boolean) : []}
+                      carTypeNames={Array.isArray(safeCar.carTypeIds) ? safeCar.carTypeIds.map((id) => carTypeMap[getId(id)]).filter(Boolean) : []}
+                      transmissionNames={Array.isArray(safeCar.transmissionIds) ? safeCar.transmissionIds.map((id) => transmissionMap[getId(id)]).filter(Boolean) : []}
+                      fuelTypeNames={Array.isArray(safeCar.fuelTypeIds) ? safeCar.fuelTypeIds.map((id) => fuelTypeMap[getId(id)]).filter(Boolean) : []}
+                      tagNames={Array.isArray(safeCar.tagIds) ? safeCar.tagIds.map((id) => tagMap[getId(id)]).filter(Boolean) : []}
                     />
                   </div>
                 );
