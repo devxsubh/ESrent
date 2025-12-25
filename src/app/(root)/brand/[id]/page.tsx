@@ -12,6 +12,7 @@ import { useBrand, useCars, useCategories } from "@/hooks/useApi"
 import { ArrowLeft, CarIcon, MapPin, Calendar } from "lucide-react"
 import Image from 'next/image';
 import { Car, PopulatedCategory } from "@/types/car";
+import { Header } from "../../home/components/Header";
 
 export default function BrandPage() {
   const params = useParams()
@@ -58,6 +59,7 @@ export default function BrandPage() {
   if (brandError || carsError) {
     return (
       <div className="min-h-screen bg-black">
+        <Header />
         <div className="container mx-auto px-4 py-8">
           <ErrorState
             error={brandError || carsError || "Failed to load brand data"}
@@ -75,6 +77,7 @@ export default function BrandPage() {
   if (!brand) {
     return (
       <div className="min-h-screen bg-black">
+        <Header />
         <div className="container mx-auto px-4 py-8">
           <div className="max-w-2xl mx-auto">
             <Card className="bg-gray-800/50 border-gray-700 shadow-2xl backdrop-blur-sm">
@@ -86,7 +89,7 @@ export default function BrandPage() {
                 <p className="text-gray-300 mb-8 text-lg">
                   The brand you&apos;re looking for doesn&apos;t exist or may have been removed.
                 </p>
-                <Button onClick={() => window.history.back()} size="lg" className="gap-2 bg-blue-600 hover:bg-blue-700">
+                <Button onClick={() => window.history.back()} size="lg" className="gap-2 bg-[#44caad] hover:bg-[#3ab89a] text-white">
                   <ArrowLeft className="w-4 h-4" />
                   Go Back
                 </Button>
@@ -100,6 +103,7 @@ export default function BrandPage() {
 
   return (
     <div className="min-h-screen bg-black">
+      <Header />
       {/* Hero Section */}
       <div className="bg-gray-900/80 border-b border-gray-700 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">
@@ -224,6 +228,7 @@ export default function BrandPage() {
 function BrandPageSkeleton() {
   return (
     <div className="min-h-screen bg-black">
+      <Header />
       {/* Hero Skeleton */}
       <div className="bg-gray-900/80 border-b border-gray-700 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-12">

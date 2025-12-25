@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, Component, ReactNode, useMemo } from "react"
+import { Suspense, Component, ReactNode, useMemo, useState, useEffect, useCallback } from "react"
 
 
 import { FeaturedBrands } from "./components/FeaturedBrands"
@@ -179,12 +179,24 @@ function LandingSkeleton() {
 }
 
 function FeaturedContent() {
+  // Pagination state for cars
+  const [currentPage, setCurrentPage] = useState(1);
+  const [allCars, setAllCars] = useState<Car[]>([]);
+  const [hasMoreCars, setHasMoreCars] = useState(true);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const CARS_PER_PAGE = 30;
+
   // Memoize the API parameters to prevent unnecessary re-renders
-  const carsParams = useMemo(() => ({ limit: 1000 }), []); // fetch all cars (featured and non-featured)
+  const carsParams = useMemo(() => ({ 
+    page: currentPage, 
+    limit: CARS_PER_PAGE 
+  }), [currentPage]);
   const brandsParams = useMemo(() => ({ featured: true, limit: 10 }), []);
   const categoriesParams = useMemo(() => ({}), []);
 
   // Use API hooks for data fetching with caching
+  // Note: These hooks execute in parallel - React will trigger all useEffect hooks simultaneously
+  // Each hook independently fetches data without blocking others
   const { 
     data: carsData, 
     loading: carsLoading, 
@@ -206,10 +218,57 @@ function FeaturedContent() {
     refetch: refetchCategories 
   } = useCategories(categoriesParams);
 
+  // Accumulate cars as pages are loaded
+  useEffect(() => {
+    if (carsData?.data) {
+      const newCars = (carsData.data as unknown as Car[]) || [];
+      const totalCars = (carsData as { total?: number }).total;
+      
+      if (currentPage === 1) {
+        // First page - replace all cars
+        setAllCars(newCars);
+        // Check if there are more cars to load
+        // If we got a full page and total exists, check against total
+        // Otherwise, if we got a full page, assume there might be more
+        if (totalCars !== undefined) {
+          setHasMoreCars(newCars.length < totalCars);
+        } else {
+          setHasMoreCars(newCars.length === CARS_PER_PAGE);
+        }
+      } else {
+        // Subsequent pages - append new cars (avoid duplicates)
+        setAllCars(prev => {
+          const existingIds = new Set(prev.map(car => car.id));
+          const uniqueNewCars = newCars.filter(car => !existingIds.has(car.id));
+          const updatedCars = [...prev, ...uniqueNewCars];
+          
+          // Check if there are more cars to load
+          if (totalCars !== undefined) {
+            setHasMoreCars(updatedCars.length < totalCars);
+          } else {
+            // If no total, assume more if we got a full page
+            setHasMoreCars(newCars.length === CARS_PER_PAGE);
+          }
+          
+          return updatedCars;
+        });
+      }
+      setIsLoadingMore(false);
+    }
+  }, [carsData, currentPage, CARS_PER_PAGE]);
+
   // Memoize the extracted data to prevent unnecessary re-renders
-  const cars = useMemo(() => carsData?.data || [], [carsData]);
+  const cars = useMemo(() => allCars, [allCars]);
   const brands = useMemo(() => brandsData?.data || [], [brandsData]);
   const categories = useMemo(() => categoriesData?.data || [], [categoriesData]);
+
+  // Load more cars handler
+  const handleLoadMore = useCallback(() => {
+    if (!isLoadingMore && hasMoreCars) {
+      setIsLoadingMore(true);
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [isLoadingMore, hasMoreCars]);
 
   // Check for errors
   const errors = [carsError, brandsError, categoriesError].filter(Boolean);
@@ -303,7 +362,13 @@ function FeaturedContent() {
           </div>
         </div>
       ) : validCars.length > 0 ? (
-        <FeaturedVehicles cars={validCars as unknown as Car[]} categories={validCategories as unknown as Category[]} />
+        <FeaturedVehicles 
+          cars={validCars as unknown as Car[]} 
+          categories={validCategories as unknown as Category[]}
+          hasMore={hasMoreCars}
+          isLoadingMore={isLoadingMore || (carsLoading && currentPage > 1)}
+          onLoadMore={handleLoadMore}
+        />
       ) : (
         <div className="mt-8 px-4 sm:px-6 pb-8">
           <EmptyCars />

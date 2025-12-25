@@ -1,5 +1,4 @@
 'use client'
-import Link from 'next/link';
 import { useState, useEffect, useMemo } from 'react';
 import { Car, PopulatedCategory } from '@/types/car';
 import { Category } from '@/types/category';
@@ -8,13 +7,17 @@ import { FilterModal, FilterValues } from './FilterModal';
 import { CarCard } from '@/components/car/CarCard';
 import { motion } from "framer-motion";
 import { EmptyCars } from '@/components/ui/empty-state';
+import { Loader2 } from 'lucide-react';
 
 interface FeaturedVehiclesProps {
   cars: Car[];
   categories: Category[];
+  hasMore?: boolean;
+  isLoadingMore?: boolean;
+  onLoadMore?: () => void;
 }
 
-export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
+export function FeaturedVehicles({ cars, categories, hasMore = false, isLoadingMore = false, onLoadMore }: FeaturedVehiclesProps) {
   const [isClient, setIsClient] = useState(false);
   const [showAll, setShowAll] = useState(false); // NEW: controls whether to show all cars
   
@@ -240,6 +243,33 @@ export function FeaturedVehicles({ cars, categories }: FeaturedVehiclesProps) {
           <Button onClick={() => setShowAll(!showAll)}>
             {showAll ? 'Show Less' : 'View All'}
           </Button>
+        </div>
+      )}
+      
+      {/* Load More Button for Pagination */}
+      {hasMore && onLoadMore && (
+        <div className="flex justify-center mt-8">
+          <Button 
+            onClick={onLoadMore}
+            disabled={isLoadingMore}
+            className="bg-[#44caad] hover:bg-[#3ab89a] text-white min-w-[140px]"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                Loading...
+              </>
+            ) : (
+              'Load More'
+            )}
+          </Button>
+        </div>
+      )}
+      
+      {/* Loading indicator when loading more */}
+      {isLoadingMore && (
+        <div className="flex justify-center mt-4">
+          <p className="text-sm text-gray-400">Loading more vehicles...</p>
         </div>
       )}
     </motion.section>

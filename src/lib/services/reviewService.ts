@@ -47,7 +47,7 @@ export class ReviewService {
       }
       
       return {
-        ...review,
+      ...review,
         car: populatedCar || null,
         carId: carIdValue
       };
@@ -140,7 +140,7 @@ export class ReviewService {
       }
       
       return {
-        ...review,
+      ...review,
         car: populatedCar || null,
         carId: carIdValue
       };

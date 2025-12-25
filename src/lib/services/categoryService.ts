@@ -304,58 +304,84 @@ export class CategoryService {
 
   /**
    * Get all categories with car counts
+   * Optimized to use aggregation instead of N+1 queries
    */
   static async getAllCategoriesWithCarCounts(): Promise<Category[]> {
     try {
       await dbConnect();
-      // Get all categories
-      const categories = await CategoryModel.find()
-        .sort({ type: 1, name: 1 })
-        .lean();
-
-      // Get car counts for each category
-      const categoriesWithCounts = await Promise.all(
-        categories.map(async (category) => {
-          let carCount = 0;
-          switch (category.type) {
-            case 'carType':
-              carCount = await CarModel.countDocuments({
-                carTypeIds: category._id,
-                available: true
-              });
-              break;
-            case 'fuelType':
-              carCount = await CarModel.countDocuments({
-                fuelTypeIds: category._id,
-                available: true
-              });
-              break;
-            case 'transmission':
-              carCount = await CarModel.countDocuments({
-                transmissionIds: category._id,
-                available: true
-              });
-              break;
-            case 'tag':
-              carCount = await CarModel.countDocuments({
-                tagIds: category._id,
-                available: true
-              });
-              break;
-            default:
-              carCount = 0;
+      
+      // Use aggregation to get all categories with car counts in a single query
+      const categoriesWithCounts = await CategoryModel.aggregate([
+        {
+          $lookup: {
+            from: 'cars',
+            let: { categoryId: '$_id', categoryType: '$type' },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: ['$available', true] },
+                      {
+                        $or: [
+                          {
+                            $and: [
+                              { $eq: ['$$categoryType', 'carType'] },
+                              { $in: ['$$categoryId', '$carTypeIds'] }
+                            ]
+                          },
+                          {
+                            $and: [
+                              { $eq: ['$$categoryType', 'fuelType'] },
+                              { $in: ['$$categoryId', '$fuelTypeIds'] }
+                            ]
+                          },
+                          {
+                            $and: [
+                              { $eq: ['$$categoryType', 'transmission'] },
+                              { $in: ['$$categoryId', '$transmissionIds'] }
+                            ]
+                          },
+                          {
+                            $and: [
+                              { $eq: ['$$categoryType', 'tag'] },
+                              { $in: ['$$categoryId', '$tagIds'] }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ],
+            as: 'matchingCars'
           }
-          const { _id, __v, ...rest } = category as any;
-          return {
-            ...rest,
-            id: _id.toString(),
-            _id: undefined,
-            __v: undefined,
-            carCount
-          } as Category;
-        })
-      );
-      return categoriesWithCounts;
+        },
+        {
+          $addFields: {
+            carCount: { $size: '$matchingCars' }
+          }
+        },
+        {
+          $project: {
+            matchingCars: 0  // Remove the cars array, keep only count
+          }
+        },
+        {
+          $sort: { type: 1, name: 1 }
+        }
+      ]);
+
+      // Transform to Category format
+      return categoriesWithCounts.map((category) => {
+        const { _id, __v, ...rest } = category;
+        return {
+          ...rest,
+          id: _id.toString(),
+          carCount: category.carCount || 0
+        } as Category;
+      });
     } catch (error) {
       console.error('Error getting categories with car counts:', error);
       throw new Error('Failed to get categories with car counts');

@@ -18,7 +18,7 @@ export function Categories({ categories }: CategoriesProps) {
     >
       <div className="flex items-center px-4 sm:px-4 justify-between mb-6 -mx-4">
         <h2 className="font-heading text-heading-3">Categories</h2>
-        <Link href="/categories" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background text-white hover:bg-gray-100 hover:text-white/80 h-10 px-4 py-2">
+        <Link href="/categories" className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-background text-white hover:bg-[#44caad] hover:text-white h-10 px-4 py-2">
           View all
         </Link>
       </div>
