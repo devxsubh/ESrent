@@ -6,6 +6,7 @@ import cn from "classnames";
 // import CrispChat from "@/components/CrispChat";
 import { AuthProvider } from '@/hooks/useAuthContext';
 import { ReactQueryProvider } from '@/components/providers/ReactQueryProvider';
+import { GoogleAnalytics } from '@next/third-parties/google';
 
 const inter = Inter({
   variable: "--font-inter",
@@ -49,6 +50,7 @@ export default function RootLayout({
           </AuthProvider>
         </ReactQueryProvider>
         {/* <CrispChat /> */}
+        <GoogleAnalytics gaId="G-2SZ915LWJ5" />
       </body>
     </html>
   );
