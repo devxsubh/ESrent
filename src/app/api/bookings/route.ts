@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { dbConnect } from '@/lib/mongodb';
 import Booking from '@/lib/models/bookingSchema';
+import { Coupon } from '@/lib/models/couponSchema';
 
 // GET all bookings (admin) or by phone (customer lookup)
 export async function GET(request: NextRequest) {
@@ -107,10 +108,103 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    // Calculate total days and price
+    // Calculate total days and base price
     const diffTime = Math.abs(endDate.getTime() - startDate.getTime());
     const totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    const totalPrice = body.pricePerDay * totalDays;
+    const basePrice = body.pricePerDay * totalDays;
+    
+    // Validate and apply coupon if provided
+    let couponDiscountAmount = 0;
+    let couponCode = undefined;
+    let originalPrice = basePrice;
+    
+    if (body.couponCode) {
+      const coupon = await Coupon.findByCode(body.couponCode);
+      
+      if (!coupon) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid coupon code' },
+          { status: 400 }
+        );
+      }
+      
+      // Validate coupon
+      const now = new Date();
+      if (!coupon.isActive) {
+        return NextResponse.json(
+          { success: false, error: 'Coupon is not active' },
+          { status: 400 }
+        );
+      }
+      
+      if (coupon.validFrom > now) {
+        return NextResponse.json(
+          { success: false, error: 'Coupon is not yet valid' },
+          { status: 400 }
+        );
+      }
+      
+      if (coupon.validUntil && coupon.validUntil < now) {
+        return NextResponse.json(
+          { success: false, error: 'Coupon has expired' },
+          { status: 400 }
+        );
+      }
+      
+      if (coupon.maxUses && coupon.currentUses >= coupon.maxUses) {
+        return NextResponse.json(
+          { success: false, error: 'Coupon has reached maximum usage limit' },
+          { status: 400 }
+        );
+      }
+      
+      // Check conditions
+      if (coupon.minDays && totalDays < coupon.minDays) {
+        return NextResponse.json(
+          { success: false, error: `This coupon requires a minimum of ${coupon.minDays} rental days` },
+          { status: 400 }
+        );
+      }
+      
+      if (coupon.minPrice && basePrice < coupon.minPrice) {
+        return NextResponse.json(
+          { success: false, error: `This coupon requires a minimum booking value of AED ${coupon.minPrice.toLocaleString()}` },
+          { status: 400 }
+        );
+      }
+      
+      if (coupon.applicableCarModels && coupon.applicableCarModels.length > 0) {
+        if (!coupon.applicableCarModels.includes(body.carName)) {
+          return NextResponse.json(
+            { success: false, error: 'This coupon is not valid for the selected car' },
+            { status: 400 }
+          );
+        }
+      }
+      
+      if (coupon.applicableBrands && coupon.applicableBrands.length > 0) {
+        if (!coupon.applicableBrands.includes(body.carBrand || '')) {
+          return NextResponse.json(
+            { success: false, error: 'This coupon is not valid for the selected car brand' },
+            { status: 400 }
+          );
+        }
+      }
+      
+      // Calculate discount
+      couponDiscountAmount = coupon.discountType === 'percentage'
+        ? Math.round((basePrice * coupon.discountValue) / 100)
+        : Math.min(coupon.discountValue, basePrice);
+      
+      couponCode = coupon.code;
+      originalPrice = basePrice;
+      
+      // Increment coupon usage
+      coupon.currentUses = (coupon.currentUses || 0) + 1;
+      await coupon.save();
+    }
+    
+    const totalPrice = Math.max(0, basePrice - couponDiscountAmount);
     
     // Generate unique visible ID
     const timestamp = Date.now().toString(36).toUpperCase();
@@ -128,6 +222,9 @@ export async function POST(request: NextRequest) {
       endDate,
       totalDays,
       totalPrice,
+      originalPrice: couponCode ? originalPrice : undefined,
+      couponCode,
+      couponDiscountAmount: couponDiscountAmount > 0 ? couponDiscountAmount : undefined,
       pickupLocation: body.pickupLocation,
       deliveryRequired: body.deliveryRequired || false,
       deliveryAddress: body.deliveryAddress,

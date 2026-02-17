@@ -92,6 +92,21 @@ const bookingSchema = new Schema<IBooking, BookingModel, IBookingMethods>(
       required: true,
       min: 0,
     },
+    originalPrice: {
+      type: Number,
+      min: 0,
+    },
+    
+    // Coupon Information
+    couponCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+    },
+    couponDiscountAmount: {
+      type: Number,
+      min: 0,
+    },
     
     // Location & Delivery
     pickupLocation: {
@@ -180,7 +195,19 @@ bookingSchema.pre('save', async function (next) {
   if (this.startDate && this.endDate) {
     const diffTime = Math.abs(this.endDate.getTime() - this.startDate.getTime());
     this.totalDays = Math.max(1, Math.ceil(diffTime / (1000 * 60 * 60 * 24)));
-    this.totalPrice = this.pricePerDay * this.totalDays;
+    const basePrice = this.pricePerDay * this.totalDays;
+    
+    // Store original price before discount
+    if (!this.originalPrice) {
+      this.originalPrice = basePrice;
+    }
+    
+    // Apply coupon discount if exists
+    if (this.couponDiscountAmount && this.couponDiscountAmount > 0) {
+      this.totalPrice = Math.max(0, basePrice - this.couponDiscountAmount);
+    } else {
+      this.totalPrice = basePrice;
+    }
   }
   
   next();
@@ -206,7 +233,8 @@ bookingSchema.methods.getWhatsAppLink = function (): string {
     `🚗 Car: ${this.carName}\n` +
     `📅 Dates: ${startDate} to ${endDate}\n` +
     `📍 Pickup: ${this.pickupLocation}\n` +
-    `💰 Total: AED ${this.totalPrice.toLocaleString()}\n\n` +
+    `${this.couponCode ? `🎫 Coupon: ${this.couponCode}\n` : ''}` +
+    `💰 Total: AED ${this.totalPrice.toLocaleString()}${this.couponDiscountAmount ? ` (Discount: AED ${this.couponDiscountAmount.toLocaleString()})` : ''}\n\n` +
     `Please confirm my booking. Thank you!`
   );
   

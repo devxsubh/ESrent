@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import Image from 'next/image';
 import { format } from 'date-fns';
 import { 
@@ -16,6 +16,10 @@ import {
   CheckCircle,
   Loader2,
   AlertCircle,
+  Ticket,
+  X,
+  ChevronDown,
+  Info,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -30,6 +34,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
 import { cn } from '@/lib/utils';
 import { 
   PICKUP_LOCATIONS, 
@@ -92,6 +103,34 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
   const [nationality, setNationality] = useState('');
   const [licenseType, setLicenseType] = useState<LicenseType>('international');
   
+  // Coupon state
+  const [couponCode, setCouponCode] = useState('');
+  const [couponSearchValue, setCouponSearchValue] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string;
+    discountAmount: number;
+    description?: string;
+  } | null>(null);
+  const [validatingCoupon, setValidatingCoupon] = useState(false);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [availableCoupons, setAvailableCoupons] = useState<Array<{
+    code: string;
+    description?: string | null;
+    discountLabel: string;
+    conditionsText: string;
+    applicable: boolean;
+  }>>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  const [couponDropdownOpen, setCouponDropdownOpen] = useState(false);
+  const [allCouponsDialogOpen, setAllCouponsDialogOpen] = useState(false);
+  const [allCouponsList, setAllCouponsList] = useState<Array<{
+    code: string;
+    description?: string | null;
+    discountLabel: string;
+    conditionsText: string;
+    applicable: boolean;
+  }>>([]);
+  
   // Calculate pricing
   const totalDays = useMemo(() => {
     if (!startDate || !endDate) return 0;
@@ -101,9 +140,16 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
     return calculateTotalDays(startStr, endStr);
   }, [startDate, endDate]);
   
-  const totalPrice = useMemo(() => {
+  const basePrice = useMemo(() => {
     return calculateTotalPrice(pricePerDay, totalDays);
   }, [pricePerDay, totalDays]);
+  
+  const totalPrice = useMemo(() => {
+    if (appliedCoupon) {
+      return Math.max(0, basePrice - appliedCoupon.discountAmount);
+    }
+    return basePrice;
+  }, [basePrice, appliedCoupon]);
   
   // Get today's date (for disabling past dates)
   const today = useMemo(() => {
@@ -112,6 +158,201 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
     return now;
   }, []);
   
+  const validateCoupon = () => {
+    console.log(`\n🔘 Apply button clicked for coupon: "${couponCode}"`);
+    if (!couponCode.trim()) {
+      console.log('❌ No coupon code entered');
+      setCouponError(null);
+      setAppliedCoupon(null);
+      return;
+    }
+    if (!startDate || !endDate || totalDays === 0) {
+      console.log('❌ Dates not selected or invalid');
+      setCouponError('Please select rental dates first');
+      return;
+    }
+    validateCouponWithCode(couponCode.trim());
+  };
+
+  const removeCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    setCouponError(null);
+  };
+
+  // Fetch applicable coupons when booking context is ready
+  useEffect(() => {
+    console.log('\n═══════════════════════════════════════════════════════════');
+    console.log('🔄 FETCHING AVAILABLE COUPONS (Frontend)');
+    console.log('═══════════════════════════════════════════════════════════');
+    console.log('Booking Context:', {
+      totalDays,
+      basePrice: `AED ${basePrice.toLocaleString()}`,
+      carModel: car.name,
+      carBrand: car.brand || 'Not specified',
+    });
+    
+    if (totalDays > 0 && basePrice > 0) {
+      console.log('✅ Booking context is ready, fetching coupons...');
+      setLoadingCoupons(true);
+      const params = new URLSearchParams({
+        totalDays: String(totalDays),
+        totalPrice: String(basePrice),
+        carModel: car.name,
+        carBrand: car.brand || '',
+      });
+      console.log('Request URL:', `/api/coupons/available?${params}`);
+      
+      fetch(`/api/coupons/available?${params}`)
+        .then((res) => res.json())
+        .then((result) => {
+          console.log('📦 Response received:', result);
+          if (result.success && result.data) {
+            const applicable = result.data.filter((c: any) => c.applicable);
+            const notApplicable = result.data.filter((c: any) => !c.applicable);
+            console.log(`✅ Found ${result.data.length} coupons:`);
+            console.log(`   - ${applicable.length} applicable`);
+            console.log(`   - ${notApplicable.length} not applicable`);
+            if (applicable.length > 0) {
+              console.log('   Applicable coupons:', applicable.map((c: any) => c.code).join(', '));
+            }
+            if (notApplicable.length > 0) {
+              console.log('   Not applicable:', notApplicable.map((c: any) => `${c.code} (${c.conditionsText})`).join(', '));
+            }
+            setAvailableCoupons(result.data);
+          } else {
+            console.log('❌ No coupons returned or request failed');
+            setAvailableCoupons([]);
+          }
+        })
+        .catch((err) => {
+          console.error('❌ Error fetching coupons:', err);
+          setAvailableCoupons([]);
+        })
+        .finally(() => {
+          setLoadingCoupons(false);
+          console.log('═══════════════════════════════════════════════════════════\n');
+        });
+    } else {
+      console.log('⏳ Waiting for booking context (dates and price)...');
+      setAvailableCoupons([]);
+    }
+  }, [totalDays, basePrice, car.name, car.brand]);
+
+  // Reset search when dropdown closes
+  useEffect(() => {
+    if (!couponDropdownOpen) {
+      setCouponSearchValue('');
+    }
+  }, [couponDropdownOpen]);
+
+  const openAllCouponsDialog = () => {
+    setAllCouponsDialogOpen(true);
+    fetch('/api/coupons/available')
+      .then((res) => res.json())
+      .then((result) => {
+        if (result.success && result.data) setAllCouponsList(result.data);
+        else setAllCouponsList([]);
+      })
+      .catch(() => setAllCouponsList([]));
+  };
+
+  const applyCouponFromDropdown = (code: string) => {
+    console.log(`\n🎯 Applying coupon from dropdown: "${code}"`);
+    setCouponCode(code);
+    setCouponDropdownOpen(false);
+    setCouponError(null);
+    validateCouponWithCode(code);
+  };
+
+  const validateCouponWithCode = (code: string) => {
+    console.log('\n═══════════════════════════════════════════════════════════');
+    console.log('🔍 VALIDATING COUPON (Frontend)');
+    console.log('═══════════════════════════════════════════════════════════');
+    
+    if (!code.trim()) {
+      console.log('❌ No coupon code provided');
+      return;
+    }
+    if (!startDate || !endDate) {
+      console.log('❌ Dates not selected');
+      return;
+    }
+    if (totalDays === 0) {
+      console.log('❌ Invalid date range (0 days)');
+      return;
+    }
+    
+    setValidatingCoupon(true);
+    setCouponError(null);
+    
+    const validationData = {
+      code: code.toUpperCase().trim(),
+      totalDays,
+      totalPrice: basePrice,
+      carModel: car.name,
+      carBrand: car.brand || undefined, // Send undefined instead of empty string
+    };
+    
+    console.log('📤 Sending validation request:', {
+      code: validationData.code,
+      totalDays: validationData.totalDays,
+      totalPrice: `AED ${validationData.totalPrice.toLocaleString()}`,
+      carModel: validationData.carModel,
+      carBrand: validationData.carBrand || 'Not specified',
+    });
+    
+    fetch('/api/coupons/validate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(validationData),
+    })
+      .then(async (res) => {
+        const result = await res.json();
+        console.log('\n📥 Validation response received:');
+        console.log('   HTTP Status:', res.status);
+        console.log('   Response:', result);
+        
+        if (!res.ok) {
+          // HTTP error status
+          const errorMsg = result.error || `Validation failed (${res.status})`;
+          console.log(`\n❌ VALIDATION FAILED: ${errorMsg}`);
+          console.log('═══════════════════════════════════════════════════════════\n');
+          setCouponError(errorMsg);
+          setAppliedCoupon(null);
+          return;
+        }
+        
+        if (result.success) {
+          console.log(`\n✅ VALIDATION SUCCESSFUL!`);
+          console.log('   Coupon:', result.data.code);
+          console.log('   Discount:', `AED ${result.data.discountAmount.toLocaleString()}`);
+          console.log('   Original Price:', `AED ${result.data.originalPrice.toLocaleString()}`);
+          console.log('   Final Price:', `AED ${result.data.finalPrice.toLocaleString()}`);
+          console.log('═══════════════════════════════════════════════════════════\n');
+          setAppliedCoupon({
+            code: result.data.code,
+            discountAmount: result.data.discountAmount,
+            description: result.data.description,
+          });
+          setCouponError(null);
+        } else {
+          const errorMsg = result.error || 'Invalid coupon';
+          console.log(`\n❌ VALIDATION FAILED: ${errorMsg}`);
+          console.log('═══════════════════════════════════════════════════════════\n');
+          setCouponError(errorMsg);
+          setAppliedCoupon(null);
+        }
+      })
+      .catch((err) => {
+        console.error('\n❌ NETWORK ERROR:', err);
+        console.log('═══════════════════════════════════════════════════════════\n');
+        setCouponError('Could not validate coupon. Please try again.');
+        setAppliedCoupon(null);
+      })
+      .finally(() => setValidatingCoupon(false));
+  };
+
   // Validate form
   const isValid = useMemo(() => {
     return (
@@ -142,7 +383,7 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
       const startDateStr = startDate ? format(startDate, 'yyyy-MM-dd') : '';
       const endDateStr = endDate ? format(endDate, 'yyyy-MM-dd') : '';
       
-      const bookingData: BookingFormData = {
+      const bookingData: BookingFormData & { carBrand?: string } = {
         carId: car.id,
         carName: car.name,
         carImage: car.image,
@@ -157,6 +398,9 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
         email: email.trim() || undefined,
         nationality,
         licenseType,
+        couponCode: appliedCoupon?.code,
+        couponDiscountAmount: appliedCoupon?.discountAmount,
+        carBrand: car.brand,
       };
       
       const response = await fetch('/api/bookings', {
@@ -308,7 +552,7 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
                 {totalDays} {totalDays === 1 ? 'day' : 'days'} × AED {pricePerDay.toLocaleString()}
               </span>
               <span className="text-xl font-bold text-primary">
-                AED {totalPrice.toLocaleString()}
+                AED {basePrice.toLocaleString()}
               </span>
             </div>
           </div>
@@ -464,9 +708,196 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
         </div>
       </div>
       
-      {/* Booking Summary */}
+      {/* Coupon + Booking Summary */}
       {totalDays > 0 && (
-        <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
+        <div className="space-y-4">
+          {/* Coupon – highlighted near summary */}
+          <div className="rounded-xl p-4 border-2 border-amber-500/40 bg-amber-500/5 shadow-sm">
+            <div className="flex items-center gap-2 mb-3">
+              <Ticket className="w-5 h-5 text-amber-600" />
+              <span className="font-semibold text-foreground">Coupon Code</span>
+            </div>
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    <span className="font-semibold text-green-600">Applied: {appliedCoupon.code}</span>
+                  </div>
+                  {appliedCoupon.description && (
+                    <p className="text-sm text-muted-foreground mt-0.5">{appliedCoupon.description}</p>
+                  )}
+                  <p className="text-sm font-medium text-green-600">Discount: AED {appliedCoupon.discountAmount.toLocaleString()}</p>
+                </div>
+                <Button type="button" variant="ghost" size="sm" onClick={removeCoupon} className="text-destructive hover:text-destructive">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Popover open={couponDropdownOpen} onOpenChange={setCouponDropdownOpen}>
+                    <PopoverTrigger asChild>
+                      <div
+                        role="combobox"
+                        aria-expanded={couponDropdownOpen}
+                        className="relative flex-1 min-w-0 flex items-center"
+                      >
+                        <Input
+                          placeholder="Enter code or pick one below"
+                          value={couponCode}
+                          onClick={() => {
+                            if (availableCoupons.length > 0) {
+                              setCouponDropdownOpen(true);
+                            }
+                          }}
+                          onChange={(e) => {
+                            setCouponCode(e.target.value.toUpperCase());
+                            setCouponError(null);
+                          }}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              e.preventDefault();
+                              validateCoupon();
+                            }
+                          }}
+                          onFocus={() => {
+                            if (availableCoupons.length > 0) {
+                              setCouponDropdownOpen(true);
+                            }
+                          }}
+                          className="bg-background border-amber-500/30 focus-visible:ring-amber-500/50 pr-10 cursor-text flex-1 min-w-0"
+                          disabled={validatingCoupon}
+                        />
+                        {availableCoupons.length > 0 && (
+                          <button
+                            type="button"
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1 hover:bg-accent rounded transition-colors z-10 pointer-events-auto"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setCouponDropdownOpen(!couponDropdownOpen);
+                            }}
+                          >
+                            <ChevronDown className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform",
+                              couponDropdownOpen && "rotate-180"
+                            )} />
+                          </button>
+                        )}
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-[var(--radix-popover-trigger-width)] min-w-[280px] max-w-[min(450px,100vw)] p-0" 
+                      align="start"
+                      side="bottom"
+                      sideOffset={4}
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      <div className="p-2 border-b">
+                        <input
+                          type="text"
+                          placeholder="Search coupons..."
+                          value={couponSearchValue}
+                          onChange={(e) => setCouponSearchValue(e.target.value)}
+                          className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                        />
+                      </div>
+                      <div className="max-h-[280px] overflow-y-auto p-1">
+                        {loadingCoupons ? (
+                          <div className="p-4 flex items-center justify-center">
+                            <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                          </div>
+                        ) : (() => {
+                          const filtered = availableCoupons.filter((c) => {
+                            if (!couponSearchValue.trim()) return true;
+                            const search = couponSearchValue.toLowerCase();
+                            return (
+                              c.code.toLowerCase().includes(search) ||
+                              (c.description && c.description.toLowerCase().includes(search)) ||
+                              c.discountLabel.toLowerCase().includes(search)
+                            );
+                          });
+                          if (filtered.length === 0) {
+                            return (
+                              <div className="py-6 text-center text-sm text-muted-foreground">
+                                No coupons found.
+                              </div>
+                            );
+                          }
+                          return filtered.map((c) => (
+                            <button
+                              key={c.code}
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                setCouponCode(c.code);
+                                setCouponSearchValue('');
+                                setCouponDropdownOpen(false);
+                                setCouponError(null);
+                                applyCouponFromDropdown(c.code);
+                              }}
+                              className={cn(
+                                "w-full text-left flex flex-col items-start gap-1 py-3 px-3 rounded-md cursor-pointer transition-colors",
+                                "hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none",
+                                !c.applicable && "opacity-60"
+                              )}
+                            >
+                              <div className="flex items-center justify-between w-full">
+                                <span className="font-medium">{c.code}</span>
+                                <span className="text-xs text-primary font-medium">{c.discountLabel}</span>
+                              </div>
+                              {c.description && (
+                                <span className="text-xs text-muted-foreground">{c.description}</span>
+                              )}
+                              {c.conditionsText && c.conditionsText !== 'No conditions' && (
+                                <span className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                  <Info className="w-3 h-3" />
+                                  {c.conditionsText}
+                                </span>
+                              )}
+                            </button>
+                          ));
+                        })()}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  <Button
+                    type="button"
+                    onClick={validateCoupon}
+                    disabled={validatingCoupon || !couponCode.trim()}
+                    className="sm:w-auto"
+                  >
+                    {validatingCoupon ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Apply'}
+                  </Button>
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {availableCoupons.length > 0 && (
+                    <span className="text-xs text-muted-foreground">Click field to see coupons for this booking</span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={openAllCouponsDialog}
+                    className="text-xs font-medium text-amber-600 hover:text-amber-700 flex items-center gap-1"
+                  >
+                    <Info className="w-3.5 h-3.5" />
+                    View all coupons & conditions
+                  </button>
+                </div>
+                {couponError && (
+                  <p className="text-sm text-destructive flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3 flex-shrink-0" />
+                    {couponError}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Booking Summary */}
+          <div className="bg-gradient-to-r from-primary/10 to-primary/5 rounded-xl p-6 border border-primary/20">
           <h3 className="font-semibold mb-4 flex items-center gap-2">
             <Car className="w-5 h-5 text-primary" />
             Booking Summary
@@ -494,6 +925,18 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
                 <span className="font-medium text-green-500">Free</span>
               </div>
             )}
+            {appliedCoupon && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span className="font-medium">AED {basePrice.toLocaleString()}</span>
+              </div>
+            )}
+            {appliedCoupon && (
+              <div className="flex justify-between text-green-600">
+                <span className="text-muted-foreground">Discount ({appliedCoupon.code})</span>
+                <span className="font-medium">- AED {appliedCoupon.discountAmount.toLocaleString()}</span>
+              </div>
+            )}
             <div className="border-t border-primary/20 pt-2 mt-2">
               <div className="flex justify-between items-center">
                 <span className="font-semibold">Total (Pay on Pickup)</span>
@@ -504,7 +947,47 @@ export function BookingForm({ car, onSuccess }: BookingFormProps) {
             </div>
           </div>
         </div>
+        </div>
       )}
+
+      {/* All Coupons popup */}
+      <Dialog open={allCouponsDialogOpen} onOpenChange={setAllCouponsDialogOpen}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ticket className="w-5 h-5 text-primary" />
+              All available coupons
+            </DialogTitle>
+            <DialogDescription>
+              Conditions apply. Select dates and car to see which coupons apply to your booking.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="overflow-y-auto flex-1 pr-2 -mr-2">
+            {allCouponsList.length === 0 ? (
+              <p className="text-sm text-muted-foreground py-4">No coupons available at the moment.</p>
+            ) : (
+              <ul className="space-y-3">
+                {allCouponsList.map((c) => (
+                  <li
+                    key={c.code}
+                    className="rounded-lg border border-border/50 p-3 bg-card"
+                  >
+                    <div className="font-semibold text-foreground">{c.code}</div>
+                    <div className="text-sm text-primary font-medium mt-0.5">{c.discountLabel}</div>
+                    {c.description && (
+                      <p className="text-sm text-muted-foreground mt-1">{c.description}</p>
+                    )}
+                    <div className="text-xs text-muted-foreground mt-2 flex items-start gap-1">
+                      <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                      <span>{c.conditionsText || 'No conditions'}</span>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* No Payment Notice */}
       <div className="bg-green-500/10 border border-green-500/20 rounded-lg p-4 flex items-start gap-3">

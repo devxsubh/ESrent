@@ -16,6 +16,7 @@ import {
   Sparkles,
   Video,
   CalendarCheck,
+  Ticket,
   ChevronLeft,
   ChevronRight
 } from 'lucide-react';
@@ -33,6 +34,12 @@ const menuItems = [
     href: '/admin/bookings', 
     icon: CalendarCheck,
     description: 'Booking Requests'
+  },
+  { 
+    name: 'Coupons', 
+    href: '/admin/coupons', 
+    icon: Ticket,
+    description: 'Discount Coupons'
   },
   { 
     name: 'Cars', 

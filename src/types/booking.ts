@@ -43,6 +43,10 @@ export interface BookingFormData {
   // Calculated
   totalDays?: number;
   totalPrice?: number;
+  
+  // Coupon
+  couponCode?: string;
+  couponDiscountAmount?: number;
 }
 
 export interface Booking extends BookingFormData {
