@@ -151,7 +151,7 @@ couponSchema.statics.findByCode = function(code: string) {
   return this.findOne({ code: code.toUpperCase() });
 };
 
-// Static method to find active coupons
+// Static method to find active coupons (usage limit filtered in app code if needed)
 couponSchema.statics.findActive = function() {
   const now = new Date();
   return this.find({
@@ -159,12 +159,9 @@ couponSchema.statics.findActive = function() {
     validFrom: { $lte: now },
     $or: [
       { validUntil: { $exists: false } },
-      { validUntil: { $gte: now } }
+      { validUntil: null },
+      { validUntil: { $gte: now } },
     ],
-    $or: [
-      { maxUses: { $exists: false } },
-      { currentUses: { $lt: this.maxUses } }
-    ]
   });
 };
 

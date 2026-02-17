@@ -87,10 +87,11 @@ export function CouponDialog({ open, onOpenChange, coupon, onSave }: CouponDialo
     try {
       const response = await fetch('/api/cars/list?limit=1000');
       const result = await response.json();
-      if (result.success && result.data) {
+      if (result.success && Array.isArray(result.data)) {
         // Extract unique car model names (using 'name' field)
-        const uniqueModels = [...new Set(result.data.map((car: any) => car.name).filter(Boolean))];
-        setCarModels(uniqueModels.sort());
+        const names = (result.data as { name?: string }[]).map((car) => car.name).filter((n): n is string => Boolean(n));
+        const uniqueModels: string[] = [...new Set(names)].sort();
+        setCarModels(uniqueModels);
       }
     } catch (error) {
       console.error('Error fetching car models:', error);
@@ -104,10 +105,11 @@ export function CouponDialog({ open, onOpenChange, coupon, onSave }: CouponDialo
     try {
       const response = await fetch('/api/brands?limit=1000');
       const result = await response.json();
-      if (result.data) {
+      if (result.data && Array.isArray(result.data)) {
         // Extract unique brand names
-        const uniqueBrands = [...new Set(result.data.map((brand: any) => brand.name).filter(Boolean))];
-        setBrands(uniqueBrands.sort());
+        const names = (result.data as { name?: string }[]).map((brand) => brand.name).filter((n): n is string => Boolean(n));
+        const uniqueBrands: string[] = [...new Set(names)].sort();
+        setBrands(uniqueBrands);
       }
     } catch (error) {
       console.error('Error fetching brands:', error);

@@ -12,6 +12,9 @@ export interface IBooking extends Document {
   endDate: Date;
   totalDays: number;
   totalPrice: number;
+  originalPrice?: number;
+  couponCode?: string;
+  couponDiscountAmount?: number;
   
   // Location & Delivery
   pickupLocation: string;

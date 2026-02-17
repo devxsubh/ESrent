@@ -110,7 +110,8 @@ export async function PATCH(
     // Check if code is being changed and if it already exists
     if (body.code && body.code.toUpperCase() !== coupon.code) {
       const existingCoupon = await Coupon.findByCode(body.code);
-      if (existingCoupon && existingCoupon._id.toString() !== id) {
+      const existingId = existingCoupon?._id != null ? String(existingCoupon._id) : null;
+      if (existingId && existingId !== id) {
         return NextResponse.json(
           { success: false, error: 'Coupon code already exists' },
           { status: 400 }
