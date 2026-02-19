@@ -306,11 +306,17 @@ export async function POST(request: NextRequest) {
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify(flatPayload),
             });
+            const text = await res.text();
             if (res.ok) {
-              console.log('[GHL webhook] SUCCESS — booking:', flatPayload.visibleId, '| attempt:', attempt, '| status:', res.status);
+              let ghlBody: { status?: string; id?: string } = {};
+              try {
+                ghlBody = JSON.parse(text) || {};
+              } catch {
+                ghlBody = { status: text };
+              }
+              console.log('[GHL webhook] SUCCESS — booking:', flatPayload.visibleId, '| attempt:', attempt, '| status:', res.status, '| GHL:', ghlBody.status || text, ghlBody.id ? `| id: ${ghlBody.id}` : '');
               return;
             }
-            const text = await res.text();
             console.error('[GHL webhook] FAILED (attempt', `${attempt}/${maxRetries}`, ') — booking:', flatPayload.visibleId, '| status:', res.status, '| body:', text);
             console.error('[GHL webhook] Payload sent:', JSON.stringify(flatPayload, null, 2));
           } catch (err) {
