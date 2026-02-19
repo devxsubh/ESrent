@@ -62,6 +62,27 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json();
     
+    // Phone or email required (at least one)
+    const hasPhone = body.phone && String(body.phone).trim().length > 0;
+    const hasEmail = body.email && String(body.email).trim().length > 0;
+    if (!hasPhone && !hasEmail) {
+      return NextResponse.json(
+        { success: false, error: 'phone or email required' },
+        { status: 400 }
+      );
+    }
+
+    // deliveryAddress required when deliveryRequired is true
+    if (body.deliveryRequired === true) {
+      const hasDeliveryAddress = body.deliveryAddress != null && String(body.deliveryAddress).trim().length > 0;
+      if (!hasDeliveryAddress) {
+        return NextResponse.json(
+          { success: false, error: 'deliveryAddress required when deliveryRequired is true' },
+          { status: 400 }
+        );
+      }
+    }
+
     // Validate required fields
     const requiredFields = [
       'carId',
@@ -75,22 +96,23 @@ export async function POST(request: NextRequest) {
       'nationality',
       'licenseType',
     ];
-    
     const missingFields = requiredFields.filter(field => !body[field]);
-    
     if (missingFields.length > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: `Missing required fields: ${missingFields.join(', ')}` 
-        },
+        { success: false, error: `Missing required fields: ${missingFields.join(', ')}` },
         { status: 400 }
       );
     }
-    
-    // Validate dates
+
+    // Validate dates (ISO 8601)
     const startDate = new Date(body.startDate);
     const endDate = new Date(body.endDate);
+    if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
+      return NextResponse.json(
+        { success: false, error: 'invalid date format' },
+        { status: 400 }
+      );
+    }
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     
@@ -238,10 +260,52 @@ export async function POST(request: NextRequest) {
     });
     
     await bookingDoc.save();
-    
+
+    // Flat payload for GHL webhook (single object, ISO dates, no wrappers)
+    const ghlWebhookUrl = process.env.GHL_WEBHOOK_URL;
+    if (ghlWebhookUrl) {
+      const whatsappLinkForWebhook = bookingDoc.getWhatsAppLink();
+      const flatPayload = {
+        event: 'booking_created',
+        version: '1',
+        bookingId: bookingDoc._id?.toString() ?? '',
+        visibleId: bookingDoc.visibleId,
+        carId: String(bookingDoc.carId ?? ''),
+        carName: bookingDoc.carName,
+        carImage: bookingDoc.carImage ?? null,
+        pricePerDay: bookingDoc.pricePerDay,
+        startDate: bookingDoc.startDate?.toISOString?.() ?? new Date(bookingDoc.startDate).toISOString(),
+        endDate: bookingDoc.endDate?.toISOString?.() ?? new Date(bookingDoc.endDate).toISOString(),
+        totalDays: bookingDoc.totalDays,
+        totalPrice: bookingDoc.totalPrice,
+        originalPrice: bookingDoc.originalPrice ?? null,
+        couponCode: bookingDoc.couponCode ?? null,
+        couponDiscountAmount: bookingDoc.couponDiscountAmount ?? null,
+        pickupLocation: bookingDoc.pickupLocation,
+        deliveryRequired: Boolean(bookingDoc.deliveryRequired),
+        deliveryAddress: bookingDoc.deliveryAddress ?? null,
+        fullName: bookingDoc.fullName,
+        phone: bookingDoc.phone,
+        email: bookingDoc.email ?? null,
+        nationality: bookingDoc.nationality,
+        licenseType: bookingDoc.licenseType,
+        status: bookingDoc.status,
+        notes: bookingDoc.notes ?? null,
+        adminNotes: bookingDoc.adminNotes ?? null,
+        whatsappLink: whatsappLinkForWebhook,
+        createdAt: bookingDoc.createdAt?.toISOString?.() ?? new Date().toISOString(),
+        updatedAt: bookingDoc.updatedAt?.toISOString?.() ?? new Date().toISOString(),
+      };
+      fetch(ghlWebhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(flatPayload),
+      }).catch((err) => console.error('GHL webhook failed:', err));
+    }
+
     // Generate WhatsApp link
     const whatsappLink = bookingDoc.getWhatsAppLink();
-    
+
     // Format dates for response
     const formattedStartDate = startDate.toLocaleDateString('en-GB', {
       day: 'numeric',
