@@ -261,7 +261,7 @@ export async function POST(request: NextRequest) {
     
     await bookingDoc.save();
 
-    // Flat payload for GHL webhook (single object, ISO dates, no wrappers)
+    // Flat payload for GHL webhook (single object, ISO dates, no wrappers) — fire-and-forget with retries and console logs
     const ghlWebhookUrl = process.env.GHL_WEBHOOK_URL;
     if (ghlWebhookUrl) {
       const whatsappLinkForWebhook = bookingDoc.getWhatsAppLink();
@@ -296,11 +296,33 @@ export async function POST(request: NextRequest) {
         createdAt: bookingDoc.createdAt?.toISOString?.() ?? new Date().toISOString(),
         updatedAt: bookingDoc.updatedAt?.toISOString?.() ?? new Date().toISOString(),
       };
-      fetch(ghlWebhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(flatPayload),
-      }).catch((err) => console.error('GHL webhook failed:', err));
+      const maxRetries = 5;
+      const retryDelayMs = 2000;
+      (async () => {
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            const res = await fetch(ghlWebhookUrl, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(flatPayload),
+            });
+            if (res.ok) {
+              console.log('[GHL webhook] SUCCESS — booking:', flatPayload.visibleId, '| attempt:', attempt, '| status:', res.status);
+              return;
+            }
+            const text = await res.text();
+            console.error('[GHL webhook] FAILED (attempt', `${attempt}/${maxRetries}`, ') — booking:', flatPayload.visibleId, '| status:', res.status, '| body:', text);
+            console.error('[GHL webhook] Payload sent:', JSON.stringify(flatPayload, null, 2));
+          } catch (err) {
+            console.error('[GHL webhook] FAILED (attempt', `${attempt}/${maxRetries}`, ') — booking:', flatPayload.visibleId, '| error:', err);
+            console.error('[GHL webhook] Payload sent:', JSON.stringify(flatPayload, null, 2));
+          }
+          if (attempt < maxRetries) {
+            await new Promise((r) => setTimeout(r, retryDelayMs));
+          }
+        }
+        console.error('[GHL webhook] All retries exhausted for booking:', flatPayload.visibleId);
+      })();
     }
 
     // Generate WhatsApp link

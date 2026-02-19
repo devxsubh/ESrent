@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import "../globals.css";
 import Footer from "@/components/Footer";
+import { RamzanBanner } from "@/components/RamzanBanner";
 
 export const metadata: Metadata = {
   title: "ES Rentals - Luxury Car Rental in Dubai",
@@ -15,10 +16,11 @@ export default function RootLayout({
 }) {
   return (
     <>
-          <main className="flex-1">
-            {children}
-          </main>
-          <Footer />
-          </>
+      <RamzanBanner />
+      <main className="flex-1">
+        {children}
+      </main>
+      <Footer />
+    </>
   );
 }

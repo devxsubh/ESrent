@@ -21,10 +21,13 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Try to find by MongoDB _id first, then by visibleId
-    let booking = await Booking.findById(id).lean();
-    
+
+    // visibleId is like "ES-MLT7VIXS-G33L"; MongoDB _id is 24-char hex — try the right lookup first to avoid CastError
+    const isMongoId = /^[a-fA-F0-9]{24}$/.test(id);
+    let booking = null;
+    if (isMongoId) {
+      booking = await Booking.findById(id).lean();
+    }
     if (!booking) {
       booking = await Booking.findOne({ visibleId: id }).lean();
     }
@@ -109,20 +112,21 @@ export async function PATCH(request: NextRequest) {
         { status: 400 }
       );
     }
-    
+
     // Build update object
     const updateData: Record<string, unknown> = {};
-    
     if (body.status) updateData.status = body.status;
     if (body.adminNotes !== undefined) updateData.adminNotes = body.adminNotes;
-    
-    // Try to find and update by MongoDB _id first, then by visibleId
-    let booking = await Booking.findByIdAndUpdate(
-      id,
-      { $set: updateData },
-      { new: true, runValidators: true }
-    );
-    
+
+    const isMongoId = /^[a-fA-F0-9]{24}$/.test(id);
+    let booking = null;
+    if (isMongoId) {
+      booking = await Booking.findByIdAndUpdate(
+        id,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+    }
     if (!booking) {
       booking = await Booking.findOneAndUpdate(
         { visibleId: id },
@@ -165,10 +169,12 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Try to delete by MongoDB _id first, then by visibleId
-    let booking = await Booking.findByIdAndDelete(id);
-    
+
+    const isMongoId = /^[a-fA-F0-9]{24}$/.test(id);
+    let booking = null;
+    if (isMongoId) {
+      booking = await Booking.findByIdAndDelete(id);
+    }
     if (!booking) {
       booking = await Booking.findOneAndDelete({ visibleId: id });
     }

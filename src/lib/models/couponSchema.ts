@@ -40,10 +40,9 @@ const couponSchema = new Schema<ICoupon, CouponModel>(
     code: {
       type: String,
       required: true,
-      unique: true,
+      unique: true, // creates unique index; no separate index: true to avoid duplicate
       uppercase: true,
       trim: true,
-      index: true,
       validate: {
         validator: function(v: string) {
           return /^[A-Z0-9_-]+$/.test(v);
@@ -141,8 +140,7 @@ const couponSchema = new Schema<ICoupon, CouponModel>(
   }
 );
 
-// Indexes for efficient queries
-couponSchema.index({ code: 1 });
+// Indexes for efficient queries (code already indexed via unique: true)
 couponSchema.index({ isActive: 1, validFrom: 1, validUntil: 1 });
 couponSchema.index({ createdAt: -1 });
 
