@@ -15,7 +15,7 @@ import { Input } from '@/components/ui/input';
 
 const POPUP_STORAGE_KEY = 'esrent_ramzan_popup_seen_2026';
 const DEFAULT_MARQUEE = '50% off Ramzan Special 2026';
-const POPUP_DELAY_MS = 2500; // Show after 2.5 seconds
+const POPUP_DELAY_MS = 15000; // Show after 15 seconds
 
 export function RamzanBanner() {
   const [marqueeText, setMarqueeText] = useState(DEFAULT_MARQUEE);
@@ -90,65 +90,65 @@ export function RamzanBanner() {
         </div>
       </div>
 
-      {/* Pop-up modal — two-panel card, appears after delay with smooth animation */}
+      {/* Pop-up modal — responsive two-panel card, appears after 15s with smooth animation */}
       <Dialog open={popupOpen} onOpenChange={setPopupOpen}>
         <DialogContent
-          className="p-0 gap-0 w-[95vw] max-w-3xl overflow-hidden border-border/50 rounded-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 [&>button]:right-3 [&>button]:top-3 [&>button]:h-9 [&>button]:w-9 [&>button]:rounded-lg [&>button]:bg-secondary [&>button]:text-white [&>button]:border [&>button]:border-white/20 [&>button]:hover:bg-secondary/80 [&>button]:z-10"
+          className="p-0 gap-0 w-[calc(100vw-2rem)] max-w-3xl max-h-[90vh] overflow-hidden border-border/50 rounded-xl sm:rounded-2xl duration-300 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 [&>button]:absolute [&>button]:right-3 [&>button]:top-3 [&>button]:z-20 [&>button]:flex [&>button]:h-9 [&>button]:w-9 [&>button]:shrink-0 [&>button]:items-center [&>button]:justify-center [&>button]:rounded-lg [&>button]:bg-black/50 [&>button]:text-white [&>button]:border [&>button]:border-white/20 [&>button]:hover:bg-black/70 [&>button]:focus:outline-none [&>button]:focus:ring-2 [&>button]:focus:ring-white/30 [&>button]:transition-colors"
           aria-describedby={undefined}
         >
           <DialogTitle className="sr-only">50% off Ramzan Special</DialogTitle>
-          <div className="grid grid-cols-1 sm:grid-cols-[0.9fr_1.1fr] min-h-[320px]">
-            {/* Left panel — image */}
-            <div className="relative aspect-[3/4] sm:aspect-auto sm:min-h-[360px] bg-muted">
+          <div className="grid grid-cols-1 sm:grid-cols-[0.9fr_1.1fr] min-h-0 max-h-[90vh] overflow-y-auto">
+            {/* Left panel — image (responsive aspect, doesn't dominate on mobile) */}
+            <div className="relative w-full aspect-[4/3] sm:aspect-auto sm:min-h-[280px] sm:max-h-[70vh] bg-muted shrink-0">
               <Image
                 src="https://res.cloudinary.com/dmlej5fc2/image/upload/v1755941110/temp-1755941107731/kfzpazepfy9hn0ge0svu.jpg"
                 alt="Luxury car rental"
                 fill
                 className="object-cover"
-                sizes="(max-width: 640px) 100vw, 340px"
+                sizes="(max-width: 640px) 100vw, 360px"
                 priority={false}
               />
             </div>
 
-            {/* Right panel — dark content */}
-            <div className="flex flex-col bg-secondary text-secondary-foreground p-6 sm:p-8 justify-center">
+            {/* Right panel — dark content (scrollable on small screens) */}
+            <div className="flex flex-col bg-secondary text-secondary-foreground p-4 sm:p-6 md:p-8 justify-center min-h-0 overflow-y-auto">
               <div className="flex flex-col items-center text-center sm:block sm:text-left">
-                <div className="flex justify-center sm:justify-start mb-4">
-                  <div className="rounded-full bg-primary/20 p-2.5">
-                    <Gift className="w-6 h-6 text-primary" aria-hidden />
+                <div className="flex justify-center sm:justify-start mb-3 sm:mb-4">
+                  <div className="rounded-full bg-primary/20 p-2 sm:p-2.5">
+                    <Gift className="w-5 h-5 sm:w-6 sm:h-6 text-primary" aria-hidden />
                   </div>
                 </div>
-                <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight text-white mb-2 font-serif">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold tracking-tight text-white mb-1.5 sm:mb-2 font-serif">
                   50% off Ramzan Special
                 </h2>
-                <p className="text-sm text-white/80 mb-6 max-w-sm">
+                <p className="text-xs sm:text-sm text-white/80 mb-4 sm:mb-6 max-w-sm">
                   Join our community and be the first to know about exclusive offers, new arrivals, and the best rates for luxury car rentals in Dubai.
                 </p>
               </div>
 
               {!subscribed ? (
-                <form onSubmit={handleSubscribe} className="space-y-4">
+                <form onSubmit={handleSubscribe} className="space-y-3 sm:space-y-4">
                   <Input
                     type="email"
                     placeholder="Enter your email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="bg-background/90 border-white/30 text-foreground placeholder:text-muted-foreground rounded-lg h-11"
+                    className="w-full bg-background/90 border-white/30 text-foreground placeholder:text-muted-foreground rounded-lg h-10 sm:h-11 text-sm sm:text-base"
                     required
                   />
                   <Button
                     type="submit"
-                    className="w-full h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg gap-2"
+                    className="w-full h-10 sm:h-11 bg-primary hover:bg-primary/90 text-primary-foreground font-medium rounded-lg gap-2 text-sm sm:text-base"
                   >
                     Subscribe
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-4 h-4 shrink-0" />
                   </Button>
                 </form>
               ) : (
                 <p className="text-sm text-primary font-medium">Thanks! Check your email for the offer.</p>
               )}
 
-              <p className="text-xs text-white/60 mt-4 text-center sm:text-left">
+              <p className="text-[11px] sm:text-xs text-white/60 mt-3 sm:mt-4 text-center sm:text-left">
                 By subscribing, you agree to our{' '}
                 <Link href="/privacy-policy" className="underline hover:text-white/90" onClick={() => setPopupOpen(false)}>
                   Privacy Policy
@@ -158,7 +158,7 @@ export function RamzanBanner() {
               <DialogClose asChild>
                 <button
                   type="button"
-                  className="mt-3 text-sm text-white/70 hover:text-white underline cursor-pointer"
+                  className="mt-2 sm:mt-3 text-xs sm:text-sm text-white/70 hover:text-white underline cursor-pointer"
                 >
                   No thanks, I&apos;ll pay full price
                 </button>
